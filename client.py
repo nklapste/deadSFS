@@ -516,7 +516,14 @@ class DeadChatClient():
                     self.chatlog_print("Not connected")
             else:
                 self.chatlog_print("Missing name")
+        elif text.find("/1msgall") == 0:
 
+            if self.connected:
+                nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+                enc = self.secretbox.encrypt(text.encode('utf-8'), nonce)
+                self.send_cmd.msg_enc_sharekey(enc)
+            else:
+                self.chatlog_print("Not connected")
         # not a command
         else:
             if self.connected:
@@ -701,10 +708,10 @@ class DeadChatClient():
         if self.secretbox:
             try:
                 msg = self.secretbox.decrypt(enc, nonce)
-                self.chatlog_print("<" + sender.decode('utf8') + "> " + msg)
+                self.chatlog_print("<" + sender.decode('utf8') + "> " + msg.decode('utf8'))
                 return
-            except nacl.exceptions.CryptoError:
-                pass
+            except nacl.exceptions.CryptoError as e:
+                self.chatlog_print("error msg svr_msg_encrypted_sharekey"+str(e))
         self.chatlog_print("<" + sender + "> ( encrypted )")
 
     # Received request for my public key
