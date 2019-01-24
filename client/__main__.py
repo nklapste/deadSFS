@@ -9,6 +9,8 @@ import os
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
+from client.shell import DeadChatShell
+
 LOG_LEVEL_STRINGS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 
 
@@ -78,9 +80,8 @@ def main(argv=sys.argv[1:]) -> int:
     """main entry point for the deadchat client"""
     parser = get_parser()
     args = parser.parse_args(argv)
-
     init_logging(args, "deadchat_client.log")
-
+    DeadChatShell().cmdloop()
     return 0
 
 
