@@ -61,9 +61,6 @@ class DeadChatShell(cmd.Cmd):
         self.sock = None
         self.connected = False
 
-        self.txq = Queue()
-        self.rxq = Queue()
-
     def send_packet(self, packet):
         sent_bytes = 0
         pktlen = len(packet)
@@ -71,11 +68,8 @@ class DeadChatShell(cmd.Cmd):
             sent_bytes += self.sock.send(packet[sent_bytes:])
         return sent_bytes
 
-    def get_packet(self, block=False):
-        if block:
-            r, w, e = select.select([self.sock], [], [])
-        else:
-            r, w, e = select.select([self.sock], [], [], 0.125)
+    def get_packet(self):
+        r, w, e = select.select([self.sock], [], [], 0.125)
         for sock in r:
             if sock == self.sock:
                 try:
@@ -85,10 +79,9 @@ class DeadChatShell(cmd.Cmd):
                     header_index = 0
                     # Receive data until we have length field from packet
                     while not have_pktlen:
-                        tmp = sock.recv(4096)
+                        tmp = sock.read(4096)
                         if not tmp:
-                            self.rxq.put(Response(ResponseCode.DISCONNECTED))
-                            return
+                            return Response(ResponseCode.DISCONNECTED)
                         else:
                             packet += tmp
                             read_bytes += len(tmp)
@@ -101,10 +94,9 @@ class DeadChatShell(cmd.Cmd):
                     pktlen = struct.unpack("!I", packet[1:5])[0]
                     read_bytes = len(packet) - 1
                     while read_bytes < pktlen:
-                        tmp = sock.recv(4096)
+                        tmp = sock.read(4096)
                         if not tmp:
-                            self.rxq.put(Response(ResponseCode.DISCONNECTED))
-                            return
+                            return Response(ResponseCode.DISCONNECTED)
                         else:
                             packet.append(tmp)
                             read_bytes += len(tmp)
@@ -116,23 +108,21 @@ class DeadChatShell(cmd.Cmd):
     def preloop(self):
         self.load_config()
 
-    def postcmd(self, stop, line):
-        try:
-            packet = self.txq.get(True, 0.125)
-            self.send_packet(packet)
-        except Empty:
-            pass
-
-        try:
-            if self.sock:
+    def print_all_packets(self):
+        if self.sock:
+            while True:
                 packet = self.get_packet()
                 if packet:
-                    self.rxq.put(packet)
-                packet = self.rxq.get(False)
-                self.handle_response(packet)
-        except Empty:
-            pass
+                    self.handle_response(packet)
+                else:
+                    break
 
+    def precmd(self, line):
+        self.print_all_packets()
+        return super().precmd(line)
+
+    def postcmd(self, stop, line):
+        self.print_all_packets()
         return super().postcmd(stop, line)
 
     def postloop(self):
