@@ -26,7 +26,6 @@ __log__ = getLogger(__name__)
 def connected(f):
     """Annotation to check if someone is connected before attempting a
     command in :class:`DeadChatShell`"""
-
     def wrapper(*args):
         if args[0].connected:
             return f(*args)
@@ -35,7 +34,6 @@ def connected(f):
                 "you must be connected to a deadchat server to "
                 "use this function"
             )
-
     return wrapper
 
 
