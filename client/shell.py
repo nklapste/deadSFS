@@ -19,7 +19,7 @@ import nacl.secret
 import nacl.public
 import nacl.exceptions
 
-from client.packet import Command, Response
+from client.packet import Command, Response, MessageCode, ResponseCode
 
 __log__ = getLogger(__name__)
 
@@ -64,8 +64,6 @@ class DeadChatShell(cmd.Cmd):
         self.txq = Queue()
         self.rxq = Queue()
 
-        self.send_cmd = Command(self.txq)
-
     def send_packet(self, packet):
         sent_bytes = 0
         pktlen = len(packet)
@@ -89,7 +87,7 @@ class DeadChatShell(cmd.Cmd):
                     while not have_pktlen:
                         tmp = sock.recv(4096)
                         if not tmp:
-                            self.rxq.put(Response(Response.DISCONNECTED))
+                            self.rxq.put(Response(ResponseCode.DISCONNECTED))
                             return
                         else:
                             packet += tmp
@@ -105,12 +103,12 @@ class DeadChatShell(cmd.Cmd):
                     while read_bytes < pktlen:
                         tmp = sock.recv(4096)
                         if not tmp:
-                            self.rxq.put(Response(Response.DISCONNECTED))
+                            self.rxq.put(Response(ResponseCode.DISCONNECTED))
                             return
                         else:
                             packet.append(tmp)
                             read_bytes += len(tmp)
-                    return packet
+                    return Response(None, packet)
                 except socket.error:
                     return None
         return None
@@ -131,7 +129,7 @@ class DeadChatShell(cmd.Cmd):
                 if packet:
                     self.rxq.put(packet)
                 packet = self.rxq.get(False)
-                self.parse_rx(packet)
+                self.handle_response(packet)
         except Empty:
             pass
 
@@ -161,7 +159,7 @@ class DeadChatShell(cmd.Cmd):
         host = "localhost"
         port = 6150
         self.user_connect(host, port)
-        self.send_cmd.ident(self.name)
+        self.send_packet(Command.ident(self.name))
 
     @connected
     def do_disconnect(self, arg):
@@ -171,7 +169,7 @@ class DeadChatShell(cmd.Cmd):
     @connected
     def do_who(self, arg):
         """Get a list of users connected to the server"""
-        self.send_cmd.who()
+        self.send_packet(Command.who())
 
     def do_create_id_key(self, arg):
         """Create your own identity and associated keys"""
@@ -205,7 +203,7 @@ class DeadChatShell(cmd.Cmd):
         """Message all users with the room key"""
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         enc = self.secretbox.encrypt(arg.encode('utf-8'), nonce)
-        self.send_cmd.msg_enc_sharekey(enc)
+        self.send_packet(Command.msg_enc_sharekey(enc))
 
     ###########################################
     ###
@@ -236,7 +234,7 @@ class DeadChatShell(cmd.Cmd):
             # TODO: look into nonce prefix
             nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
             enc = self.boxes[name].encrypt(self.shared_key, nonce)
-            self.send_cmd.msg_send_sharekey(name, enc)
+            self.send_packet(Command.msg_send_sharekey(name, enc))
             __log__.info("Sent room key to {}".format(name))
         else:
             __log__.error("No key for user, run \"/idexch {}\" first "
@@ -310,14 +308,14 @@ class DeadChatShell(cmd.Cmd):
 
     def user_idexch(self, name):
         key = self.id_public_key.encode()
-        self.send_cmd.msg_req_pubkey(name, key)
+        self.send_packet(Command.msg_req_pubkey(name, key))
         __log__.info("Requested room key from {}".format(name))
 
     def user_msg(self, name, msg):
         if self.init_pubkey(name):
             nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
             enc = self.boxes[name].encrypt(msg.encode('utf-8'), nonce)
-            self.send_cmd.msg_enc_pubkey(name.encode('utf8'), enc)
+            self.send_packet(Command.msg_enc_pubkey(name.encode('utf8'), enc))
             print("[{} => {}] {}".format(self.name, name, msg))
         else:
             __log__.error(
@@ -346,42 +344,24 @@ class DeadChatShell(cmd.Cmd):
             except Exception:
                 __log__.exception("error accessing SecretBox")
 
-    def parse_rx(self, rx):
-        if isinstance(rx, Response):
-            # DISCONNECTED
-            if rx.type == Response.DISCONNECTED:
-                self.user_disconnect()
-        else:
-            rxtype = rx[5]
-
-            # SVR_NOTICE
-            if rxtype == Response.SVR_NOTICE:
-                msg = rx[6:]
-                __log__.info(msg.decode("utf-8"))
-
-            # SVR_MSG
-            elif rxtype == Response.SVR_MSG:
-                namelen = struct.unpack("!H", rx[6:8])[0]
-                name = rx[8:8 + namelen]
-                msgtype = rx[8 + namelen]
-
-                if msgtype == Command.MSG_REQ_SHAREKEY:
-                    self.svr_msg_request_sharekey(name)
-                elif msgtype == Command.MSG_SEND_SHAREKEY:
-                    data = rx[8 + namelen + 1:]
-                    self.svr_msg_send_sharekey(name, data)
-                elif msgtype == Command.MSG_ENC_SHAREKEY:
-                    data = rx[8 + namelen + 1:]
-                    self.svr_msg_encrypted_sharekey(name, data)
-                elif msgtype == Command.MSG_REQ_PUBKEY:
-                    data = rx[8 + namelen + 1:]
-                    self.svr_msg_request_pubkey(name, data)
-                elif msgtype == Command.MSG_SEND_PUBKEY:
-                    data = rx[8 + namelen + 1:]
-                    self.svr_msg_send_pubkey(name, data)
-                elif msgtype == Command.MSG_ENC_PUBKEY:
-                    data = rx[8 + namelen + 1:]
-                    self.svr_msg_encrypted_pubkey(name, data)
+    def handle_response(self, resp: Response):
+        if resp.type == ResponseCode.DISCONNECTED:
+            self.user_disconnect()
+        elif resp.type == ResponseCode.NOTICE:
+            print("Server notice: {}".format(resp.message))
+        elif resp.type == ResponseCode.MESSAGE:
+            if resp.message_type == MessageCode.REQ_SHAREKEY:
+                self.svr_msg_request_sharekey(resp.name)
+            elif resp.message_type == MessageCode.SEND_SHAREKEY:
+                self.svr_msg_send_sharekey(resp.name, resp.data)
+            elif resp.message_type == MessageCode.ENC_SHAREKEY:
+                self.svr_msg_encrypted_sharekey(resp.name, resp.data)
+            elif resp.message_type == MessageCode.REQ_PUBKEY:
+                self.svr_msg_request_pubkey(resp.name, resp.data)
+            elif resp.message_type == MessageCode.SEND_PUBKEY:
+                self.svr_msg_send_pubkey(resp.name, resp.data)
+            elif resp.message_type == MessageCode.ENC_PUBKEY:
+                self.svr_msg_encrypted_pubkey(resp.name, resp.data)
 
     def svr_msg_request_sharekey(self, sender):
         __log__.info("{} requests the room key".format(sender))
@@ -429,7 +409,7 @@ class DeadChatShell(cmd.Cmd):
 
         # TODO: handle if public_key not set
         key = self.id_public_key.encode()
-        self.send_cmd.msg_send_pubkey(sender, key)
+        self.send_packet(Command.msg_send_pubkey(sender, key))
 
         # Delete existing box
         if sender in self.boxes:
@@ -441,7 +421,8 @@ class DeadChatShell(cmd.Cmd):
         # save key to config file
         if not self.config.has_section("keys"):
             self.config.add_section("keys")
-        self.config.set("keys", sender.decode('utf8'), base64.b64encode(data).decode("utf8"))
+        self.config.set("keys", sender.decode('utf8'),
+                        base64.b64encode(data).decode("utf8"))
         self.save_config()
         print("id key exchange with {} complete".format(sender.decode("utf8")))
 

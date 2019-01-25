@@ -1,79 +1,126 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""""""
+"""packet definitions for the deadchat client"""
 
 import struct
+from enum import Enum
+
+
+class CommandCode(Enum):
+    MSG_ALL = 0
+    MSG_TO = 1
+    ID = 2
+    WHO = 3
+
+
+class ResponseCode(Enum):
+    NOTICE = 4
+    MESSAGE = 5
+    DISCONNECTED = 6
+
+
+class MessageCode(Enum):
+    REQ_SHAREKEY = 0
+    SEND_SHAREKEY = 1
+    ENC_SHAREKEY = 2
+    REQ_PUBKEY = 3
+    SEND_PUBKEY = 4
+    ENC_PUBKEY = 5
 
 
 # Packet
 # [header] [packet len except header (4)] [type (1)] [payload]
-class Command():
-    CMD_MSGALL, CMD_MSGTO, CMD_IDENT, CMD_WHO = list(range(4))
+def packetize(command: int, payload: bytes):
+    pktlen = len(payload) + 1
+    return struct.pack("!cIB", b'\xde', pktlen, command) + payload
 
-    MSG_REQ_SHAREKEY, MSG_SEND_SHAREKEY, MSG_ENC_SHAREKEY, \
-    MSG_REQ_PUBKEY, MSG_SEND_PUBKEY, MSG_ENC_PUBKEY = list(range(6))
 
-    def __init__(self, txq):
-        self.queue = txq
+class Command:
 
-    def packetize(self, command, payload):
-        pktlen = len(payload) + 1
-        return struct.pack("!cIB", b'\xde', pktlen, command) + payload
+    @staticmethod
+    def msg_req_sharekey():
+        payload = struct.pack("!B", MessageCode.REQ_SHAREKEY.value)
+        return packetize(CommandCode.MSG_ALL.value, payload)
 
-    def msg_req_sharekey(self):
-        payload = struct.pack("!B", Command.MSG_REQ_SHAREKEY)
-        packet = self.packetize(Command.CMD_MSGALL, payload)
-        self.queue.put(packet)
+    @staticmethod
+    def msg_enc_sharekey(data):
+        payload = struct.pack("!B", MessageCode.ENC_SHAREKEY.value) + data
+        return packetize(CommandCode.MSG_ALL.value, payload)
 
-    def msg_enc_sharekey(self, data):
-        payload = struct.pack("!B", Command.MSG_ENC_SHAREKEY) + data
-        packet = self.packetize(Command.CMD_MSGALL, payload)
-        self.queue.put(packet)
-
-    def msg_send_sharekey(self, recipient, data):
+    @staticmethod
+    def msg_send_sharekey(recipient, data):
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", Command.MSG_SEND_SHAREKEY)
+        payload += struct.pack("!B", MessageCode.SEND_SHAREKEY.value)
         payload += data
-        packet = self.packetize(Command.CMD_MSGTO, payload)
-        self.queue.put(packet)
+        return packetize(CommandCode.MSG_TO.value, payload)
 
-    def msg_req_pubkey(self, recipient, mykey):
+    @staticmethod
+    def msg_req_pubkey(recipient, mykey):
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", Command.MSG_REQ_PUBKEY)
+        payload += struct.pack("!B", MessageCode.REQ_PUBKEY.value)
         payload += mykey
-        packet = self.packetize(Command.CMD_MSGTO, payload)
-        self.queue.put(packet)
+        return packetize(CommandCode.MSG_TO.value, payload)
 
-    def msg_send_pubkey(self, recipient, data):
+    @staticmethod
+    def msg_send_pubkey(recipient, data):
         payload = struct.pack("!H", len(recipient))
         payload += recipient
-        payload += struct.pack("!B", Command.MSG_SEND_PUBKEY)
+        payload += struct.pack("!B", MessageCode.SEND_PUBKEY.value)
         payload += data
-        packet = self.packetize(Command.CMD_MSGTO, payload)
-        self.queue.put(packet)
+        return packetize(CommandCode.MSG_TO.value, payload)
 
-    def msg_enc_pubkey(self, recipient, data):
+    @staticmethod
+    def msg_enc_pubkey(recipient, data):
         payload = struct.pack("!H", len(recipient))
         payload += recipient
-        payload += struct.pack("!B", Command.MSG_ENC_PUBKEY)
+        payload += struct.pack("!B", MessageCode.ENC_PUBKEY.value)
         payload += data
-        packet = self.packetize(Command.CMD_MSGTO, payload)
-        self.queue.put(packet)
+        return packetize(CommandCode.MSG_TO.value, payload)
 
-    def ident(self, name):
-        packet = self.packetize(Command.CMD_IDENT, name.encode('utf-8'))
-        self.queue.put(packet)
+    @staticmethod
+    def ident(name):
+        return packetize(CommandCode.ID.value, name.encode('utf-8'))
 
-    def who(self):
-        packet = self.packetize(Command.CMD_WHO, b"")
-        self.queue.put(packet)
+    @staticmethod
+    def who():
+        return packetize(CommandCode.WHO.value, b"")
 
 
-class Response():
-    SVR_NOTICE, SVR_MSG, DISCONNECTED = list(range(4, 7))
-
-    def __init__(self, rtype):
+class Response:
+    def __init__(self, rtype, raw_data=None):
         self.type = rtype
+        self.raw_data = raw_data
+
+        self.message = None
+        self.name = None
+        self.message_type = None
+
+        if self.raw_data is not None:
+            self.parse_response(self.raw_data)
+
+    def parse_response(self, raw_data):
+        self.type = ResponseCode(raw_data[5])
+        # SVR_NOTICE
+        if self.type == ResponseCode.NOTICE:
+            self.message = raw_data[6:]
+        # SVR_MSG
+        elif self.type == ResponseCode.MESSAGE:
+            namelen = struct.unpack("!H", raw_data[6:8])[0]
+            self.name = self.raw_data[8:8 + namelen]
+            self.message_type = MessageCode(raw_data[8 + namelen])
+
+            if self.message_type == MessageCode.REQ_SHAREKEY:
+                pass
+            elif self.message_type == MessageCode.SEND_SHAREKEY:
+                self.data = raw_data[8 + namelen + 1:]
+            elif self.message_type == MessageCode.ENC_SHAREKEY:
+                self.data = raw_data[8 + namelen + 1:]
+            elif self.message_type == MessageCode.REQ_PUBKEY:
+                self.data = raw_data[8 + namelen + 1:]
+            elif self.message_type == MessageCode.SEND_PUBKEY:
+                self.data = raw_data[8 + namelen + 1:]
+            elif self.message_type == MessageCode.ENC_PUBKEY:
+                self.data = raw_data[8 + namelen + 1:]
