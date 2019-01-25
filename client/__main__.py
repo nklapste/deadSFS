@@ -76,7 +76,11 @@ def get_parser() -> argparse.ArgumentParser:
                         dest="config_path",
                         help="Path to read/write the config file for the "
                              "deadchat client")
-    # TODO: add argument for ca certs
+    parser.add_argument("-ca", "--ca-certs", dest="ca_certs",
+                        default=None,
+                        help="If specified enable using ca certificate "
+                             "validation using certificates at the specified "
+                             "path")
     add_log_parser(parser)
 
     return parser
@@ -87,7 +91,7 @@ def main(argv=sys.argv[1:]) -> int:
     parser = get_parser()
     args = parser.parse_args(argv)
     init_logging(args, "deadchat_client.log")
-    DeadChatShell(args.config_path).cmdloop()
+    DeadChatShell(args.config_path, args.ca_certs).cmdloop()
     return 0
 
 

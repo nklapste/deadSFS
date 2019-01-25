@@ -45,12 +45,14 @@ class DeadChatShell(cmd.Cmd):
 
     MAX_NAME_LENGTH = 65535
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, ca_certs: str):
         """Initialize the deadchat client shell"""
         super().__init__()
 
         self.config_path = config_path
         self.config = ConfigParser()
+
+        self.ca_certs = ca_certs
 
         self.name = None
         self.id_public_key = None
@@ -254,11 +256,14 @@ class DeadChatShell(cmd.Cmd):
     def user_connect(self, host: str, port: int):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock = ssl.wrap_socket(
-                s,
-                # ca_certs = "",
-                # cert_reqs=ssl.CERT_REQUIRED
-            )
+            if self.ca_certs is not None:
+                self.sock = ssl.wrap_socket(
+                    s,
+                    ca_certs=self.ca_certs,
+                    cert_reqs=ssl.CERT_REQUIRED
+                )
+            else:
+                self.sock = ssl.wrap_socket(s)
             self.sock.connect((host, port))
 
             self.connected = True
