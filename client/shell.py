@@ -26,11 +26,14 @@ __log__ = getLogger(__name__)
 def connected(f):
     """Annotation to check if someone is connected before attempting a
     command in :class:`DeadChatShell`"""
+
     def wrapper(*args):
         if args[0].connected:
             return f(*args)
         else:
-            __log__.error("you must be connected to a deadchat server to use this function")
+            __log__.error(
+                "you must be connected to a deadchat server to use this function")
+
     return wrapper
 
 
@@ -289,9 +292,11 @@ class DeadChatShell(cmd.Cmd):
         if not self.config.has_section("id"):
             self.config.add_section("id")
         self.config.set("id", "id_private_key",
-                        base64.b64encode(self.id_private_key.encode()).decode("utf8"))
+                        base64.b64encode(self.id_private_key.encode()).decode(
+                            "utf8"))
         self.config.set("id", "id_public_key",
-                        base64.b64encode(self.id_public_key.encode()).decode("utf8"))
+                        base64.b64encode(self.id_public_key.encode()).decode(
+                            "utf8"))
         self.config.set("id", "name", self.name.encode('utf-8').decode("utf8"))
         self.save_config()
 
@@ -365,12 +370,14 @@ class DeadChatShell(cmd.Cmd):
                 if not self.config.has_section("room"):
                     self.config.add_section("room")
                 self.config.set("room", "room_key",
-                                base64.b64encode(self.shared_key).decode("utf8"))
+                                base64.b64encode(self.shared_key).decode(
+                                    "utf8"))
                 self.save_config()
                 print("{} has sent you the room key".format(sender))
                 return
             except nacl.exceptions.CryptoError:
-                __log__.exception("error decrypting given room sent from: {}".format(sender))
+                __log__.exception(
+                    "error decrypting given room sent from: {}".format(sender))
         __log__.error("Received room key from {} but unable to decrypt, "
                       "run /idexch".format(sender))
 
@@ -393,7 +400,8 @@ class DeadChatShell(cmd.Cmd):
         # store key from sender
         if not self.config.has_section("keys"):
             self.config.add_section("keys")
-        self.config.set("keys", sender.decode("utf8"), base64.b64encode(data).decode("utf8"))
+        self.config.set("keys", sender.decode("utf8"),
+                        base64.b64encode(data).decode("utf8"))
         self.save_config()
 
         # TODO: handle if public_key not set
@@ -431,7 +439,7 @@ class DeadChatShell(cmd.Cmd):
                 __log__.exception(
                     "[{} => {}] ( WARNING: Unable to decrypt. One of you "
                     "may have changed keys or might be an imposter. )".format(
-                    sender, self.name))
+                        sender, self.name))
         else:
             __log__.error(
                 "[{} => {}] ( Message from unknown user, run \"/idexch {}\" "
