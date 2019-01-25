@@ -11,13 +11,12 @@ import ssl
 import struct
 from configparser import ConfigParser
 from logging import getLogger
-from queue import Queue, Empty
 
 import nacl
-import nacl.utils
-import nacl.secret
-import nacl.public
 import nacl.exceptions
+import nacl.public
+import nacl.secret
+import nacl.utils
 
 from client.packet import Command, Response, MessageCode, ResponseCode
 
