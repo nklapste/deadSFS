@@ -23,6 +23,9 @@ __log__ = getLogger(__name__)
 
 
 class Client:
+
+    MAX_NAME_LENGTH = 65535
+
     def __init__(self, config_path: str, ca_certs: str):
         """Init a client to interact with the deadchat server and other
         deadchat clients"""
@@ -108,8 +111,6 @@ class Client:
         except Exception:
             __log__.exception(
                 "Unable to connect to {} on port {}".format(host, port))
-
-    MAX_NAME_LENGTH = 65535
 
     def user_createid(self, name):
         if len(name) > Client.MAX_NAME_LENGTH:
