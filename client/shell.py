@@ -91,7 +91,7 @@ class DeadChatShell(cmd.Cmd):
         # TODO: argument argparsing
         host = "localhost"
         port = 6150
-        self.client.user_connect(host, port)
+        self.client.connect(host, port)
         self.client.send_packet(Command.ident(self.client.name))
         self.connected = True
 
@@ -111,27 +111,27 @@ class DeadChatShell(cmd.Cmd):
         if self.connected:
             __log__.error("Disconnect prior to changing id")
         else:
-            self.client.user_createid(arg)
+            self.client.create_id_key(arg)
 
     @connected
     def do_exchange_id_keys(self, arg):
         """Exchange identity keys with another deadchat user"""
-        self.client.user_idexch(arg)
+        self.client.exchange_id_key(arg)
 
     def do_create_fs_key(self, arg):
         """Create a secret key for a shared remote filesystem"""
-        self.client.user_genroomkey()
+        self.client.create_room_key()
 
     @connected
     def do_send_fs_key(self, arg):
         """Send a secret key for a shared remote filesystem securely"""
-        self.client.user_sendroomkey(arg)
+        self.client.send_room_key(arg)
 
     @connected
     def do_msg(self, arg):
         """Privately message one user"""
         user, msg = arg.split(" ", 1)
-        self.client.user_msg(user, msg)
+        self.client.message(user, msg)
 
     @connected
     def do_msg_all(self, arg):

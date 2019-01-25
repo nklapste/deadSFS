@@ -31,7 +31,7 @@ class MessageCode(Enum):
 
 # Packet
 # [header] [packet len except header (4)] [type (1)] [payload]
-def packetize(command: int, payload: bytes):
+def packetize(command: int, payload: bytes) -> bytes:
     pktlen = len(payload) + 1
     return struct.pack("!cIB", b'\xde', pktlen, command) + payload
 
@@ -39,17 +39,17 @@ def packetize(command: int, payload: bytes):
 class Command:
 
     @staticmethod
-    def msg_req_sharekey():
+    def msg_req_sharekey() -> bytes:
         payload = struct.pack("!B", MessageCode.REQ_SHAREKEY.value)
         return packetize(CommandCode.MSG_ALL.value, payload)
 
     @staticmethod
-    def msg_enc_sharekey(data):
+    def msg_enc_sharekey(data: bytes) -> bytes:
         payload = struct.pack("!B", MessageCode.ENC_SHAREKEY.value) + data
         return packetize(CommandCode.MSG_ALL.value, payload)
 
     @staticmethod
-    def msg_send_sharekey(recipient, data):
+    def msg_send_sharekey(recipient: str, data: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
         payload += struct.pack("!B", MessageCode.SEND_SHAREKEY.value)
@@ -57,7 +57,7 @@ class Command:
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
-    def msg_req_pubkey(recipient, mykey):
+    def msg_req_pubkey(recipient: str, mykey: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
         payload += struct.pack("!B", MessageCode.REQ_PUBKEY.value)
@@ -65,32 +65,32 @@ class Command:
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
-    def msg_send_pubkey(recipient, data):
+    def msg_send_pubkey(recipient: str, data: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
-        payload += recipient
+        payload += recipient.encode('utf-8')
         payload += struct.pack("!B", MessageCode.SEND_PUBKEY.value)
         payload += data
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
-    def msg_enc_pubkey(recipient, data):
+    def msg_enc_pubkey(recipient: str, data: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
-        payload += recipient
+        payload += recipient.encode('utf-8')
         payload += struct.pack("!B", MessageCode.ENC_PUBKEY.value)
         payload += data
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
-    def ident(name):
+    def ident(name: str) -> bytes:
         return packetize(CommandCode.ID.value, name.encode('utf-8'))
 
     @staticmethod
-    def who():
+    def who() -> bytes:
         return packetize(CommandCode.WHO.value, b"")
 
 
 class Response:
-    def __init__(self, rtype, raw_data=None):
+    def __init__(self, rtype, raw_data: bytes = None):
         self.type = rtype
         self.raw_data = raw_data
 
@@ -101,7 +101,7 @@ class Response:
         if self.raw_data is not None:
             self.parse_response(self.raw_data)
 
-    def parse_response(self, raw_data):
+    def parse_response(self, raw_data: bytes):
         self.type = ResponseCode(raw_data[5])
         # SVR_NOTICE
         if self.type == ResponseCode.NOTICE:
