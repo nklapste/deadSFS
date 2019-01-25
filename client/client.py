@@ -43,6 +43,8 @@ class Client:
 
         self.sock: socket.socket = None
 
+        self.connected: bool = False
+
     def send_packet(self, packet: bytes) -> int:
         sent_bytes = 0
         pktlen = len(packet)
@@ -63,7 +65,7 @@ class Client:
                     while not have_pktlen:
                         tmp = sock.read(4096)
                         if not tmp:
-                            return Response(ResponseCode.DISCONNECTED)
+                            return Response()
                         else:
                             packet += tmp
                             read_bytes += len(tmp)
@@ -78,11 +80,11 @@ class Client:
                     while read_bytes < pktlen:
                         tmp = sock.read(4096)
                         if not tmp:
-                            return Response(ResponseCode.DISCONNECTED)
+                            return Response()
                         else:
                             packet.append(tmp)
                             read_bytes += len(tmp)
-                    return Response(None, packet)
+                    return Response(packet)
                 except socket.error:
                     return
         return
@@ -99,18 +101,18 @@ class Client:
             else:
                 self.sock = ssl.wrap_socket(s)
             self.sock.connect((host, port))
-
+        except Exception:
+            __log__.exception(
+                "Unable to connect to {} on port {}".format(host, port))
+        else:
             __log__.info("Connected to {} on port {}".format(host, port))
-
+            self.connected = True
             self.config.read(self.config_path)
             if not self.config.has_section("server"):
                 self.config.add_section("server")
             self.config.set("server", "host", str(host))
             self.config.set("server", "port", str(port))
             self.save_config()
-        except Exception:
-            __log__.exception(
-                "Unable to connect to {} on port {}".format(host, port))
 
     def create_id_key(self, name: str):
         if len(name) > Client.MAX_NAME_LENGTH:
@@ -179,7 +181,7 @@ class Client:
         if resp.type == ResponseCode.DISCONNECTED:
             self.close()
         elif resp.type == ResponseCode.NOTICE:
-            self._receive_server_notice(resp.message)
+            self._receive_server_notice(resp.data)
         elif resp.type == ResponseCode.MESSAGE:
             if resp.message_type == MessageCode.REQ_SHAREKEY:
                 self._receive_request_share_key(resp.name)
@@ -290,6 +292,7 @@ class Client:
     def close(self):
         self.sock.close()
         self.sock = None
+        self.connected = False
         __log__.info("disconnected from server")
 
     def create_room_key(self):

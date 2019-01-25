@@ -90,24 +90,23 @@ class Command:
 
 
 class Response:
-    def __init__(self, rtype, raw_data: bytes = None):
-        self.type = rtype
+    def __init__(self, raw_data: bytes = None):
         self.raw_data = raw_data
+        self.type = None
 
-        self.message = None
         self.name = None
         self.message_type = None
         self.data = None
 
         if self.raw_data is not None:
-            self.parse_response(self.raw_data)
+            self._parse_response(self.raw_data)
+        else:
+            self.type = ResponseCode.DISCONNECTED
 
-    def parse_response(self, raw_data: bytes):
+    def _parse_response(self, raw_data: bytes):
         self.type = ResponseCode(raw_data[5])
-        # SVR_NOTICE
         if self.type == ResponseCode.NOTICE:
-            self.message = raw_data[6:]
-        # SVR_MSG
+            self.data = raw_data[6:]
         elif self.type == ResponseCode.MESSAGE:
             namelen = struct.unpack("!H", raw_data[6:8])[0]
             self.name = self.raw_data[8:8 + namelen]
