@@ -46,9 +46,6 @@ class DeadChatShell(cmd.Cmd):
 
         self.client = client
 
-    def preloop(self):
-        self.client.load_config()
-
     def print_all_packets(self):
         if self.client.sock:
             while True:
