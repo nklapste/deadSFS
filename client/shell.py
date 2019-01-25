@@ -23,7 +23,7 @@ def connected(f):
     command in :class:`DeadChatShell`"""
 
     def wrapper(*args):
-        if args[0].connected:
+        if args[0].client.connected:
             return f(*args)
         else:
             __log__.error(
@@ -45,7 +45,6 @@ class DeadChatShell(cmd.Cmd):
         super().__init__()
 
         self.client = client
-        self.connected = False
 
     def preloop(self):
         self.client.load_config()
@@ -69,20 +68,19 @@ class DeadChatShell(cmd.Cmd):
 
     def postloop(self):
         """"""
-        if self.connected:
+        if self.client.connected:
             self.client.close()
 
     def do_exit(self, arg):
         """exit out of the deadchat client shell"""
         __log__.info("exiting deadchat client shell")
-        if self.connected:
+        if self.client.connected:
             self.client.close()
-        self.connected = False
         return True
 
     def do_connect(self, arg):
         """Connect to a deadchat server"""
-        if self.connected:
+        if self.client.connected:
             __log__.error("Already connected")
             return
         if not self.client.name:
@@ -93,13 +91,11 @@ class DeadChatShell(cmd.Cmd):
         port = 6150
         self.client.connect(host, port)
         self.client.send_packet(Command.ident(self.client.name))
-        self.connected = True
 
     @connected
     def do_disconnect(self, arg):
         """Disconnect from a deadchat server"""
         self.client.close()
-        self.connected = False
 
     @connected
     def do_who(self, arg):
@@ -108,7 +104,7 @@ class DeadChatShell(cmd.Cmd):
 
     def do_create_id_key(self, arg):
         """Create your own identity and associated keys"""
-        if self.connected:
+        if self.client.connected:
             __log__.error("Disconnect prior to changing id")
         else:
             self.client.create_id_key(arg)
