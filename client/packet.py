@@ -97,6 +97,7 @@ class Response:
         self.message = None
         self.name = None
         self.message_type = None
+        self.data = None
 
         if self.raw_data is not None:
             self.parse_response(self.raw_data)
