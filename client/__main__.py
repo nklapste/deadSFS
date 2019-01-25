@@ -41,7 +41,6 @@ def add_log_parser(parser):
 
 def init_logging(args, log_file_path):
     """Intake a argparse.parse_args() object and setup python logging"""
-    # configure logging
     handlers_ = []
     log_format = logging.Formatter(
         fmt="[%(asctime)s] [%(levelname)s] - %(message)s")
