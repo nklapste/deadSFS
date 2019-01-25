@@ -77,6 +77,7 @@ class DeadChatShell(cmd.Cmd):
         __log__.info("exiting deadchat client shell")
         if self.connected:
             self.client.close()
+        self.connected = False
         return True
 
     def do_connect(self, arg):

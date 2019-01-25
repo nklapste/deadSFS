@@ -41,7 +41,7 @@ class Client:
         self.secretbox = None
         self.boxes = {}
 
-        self.sock = None
+        self.sock: socket = None
 
     def send_packet(self, packet):
         sent_bytes = 0
@@ -84,8 +84,8 @@ class Client:
                             read_bytes += len(tmp)
                     return Response(None, packet)
                 except socket.error:
-                    return None
-        return None
+                    return
+        return
 
     def user_connect(self, host: str, port: int):
         try:
@@ -112,7 +112,7 @@ class Client:
             __log__.exception(
                 "Unable to connect to {} on port {}".format(host, port))
 
-    def user_createid(self, name):
+    def user_createid(self, name: str):
         if len(name) > Client.MAX_NAME_LENGTH:
             __log__.error("Name: {} is too long".format(name))
             return
@@ -137,12 +137,12 @@ class Client:
         self.config.set("id", "name", self.name.encode('utf-8').decode("utf8"))
         self.save_config()
 
-    def user_idexch(self, name):
+    def user_idexch(self, name: str):
         key = self.id_public_key.encode()
         self.send_packet(Command.msg_req_pubkey(name, key))
         __log__.info("Requested room key from {}".format(name))
 
-    def user_msg(self, name, msg):
+    def user_msg(self, name: str, msg: str):
         if self.init_pubkey(name):
             nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
             enc = self.boxes[name].encrypt(msg.encode('utf-8'), nonce)
@@ -194,10 +194,10 @@ class Client:
             elif resp.message_type == MessageCode.ENC_PUBKEY:
                 self.svr_msg_encrypted_pubkey(resp.name, resp.data)
 
-    def svr_msg_request_sharekey(self, sender):
+    def svr_msg_request_sharekey(self, sender: str):
         __log__.info("{} requests the room key".format(sender))
 
-    def svr_msg_send_sharekey(self, sender, data):
+    def svr_msg_send_sharekey(self, sender: str, data: bytes):
         if self.init_pubkey(sender):
             try:
                 nonce = data[0:nacl.public.Box.NONCE_SIZE]
@@ -218,7 +218,7 @@ class Client:
         __log__.error("Received room key from {} but unable to decrypt, "
                       "run /idexch".format(sender))
 
-    def svr_msg_encrypted_sharekey(self, sender, data):
+    def svr_msg_encrypted_sharekey(self, sender: str, data: bytes):
         nonce = data[0:nacl.secret.SecretBox.NONCE_SIZE]
         enc = data[nacl.secret.SecretBox.NONCE_SIZE:]
         if self.secretbox:
@@ -226,50 +226,48 @@ class Client:
                 msg = self.secretbox.decrypt(enc, nonce)
                 __log__.info("<{}> {}".format(sender, msg))
                 return
-            except nacl.exceptions.CryptoError as e:
+            except nacl.exceptions.CryptoError:
                 __log__.exception("<{}> (ERROR: decrypting message)")
         __log__.error("<{}> (encrypted)".format(sender))
 
-    def svr_msg_request_pubkey(self, sender, data):
+    def svr_msg_request_pubkey(self, sender: str, data: bytes):
         """Handle a request for my public key"""
         __log__.info("Received id key request from {}".format(sender))
 
         # store key from sender
         if not self.config.has_section("keys"):
             self.config.add_section("keys")
-        self.config.set("keys", sender.decode("utf8"),
-                        base64.b64encode(data).decode("utf8"))
+        self.config.set("keys", sender, base64.b64encode(data).decode("utf8"))
         self.save_config()
 
         # TODO: handle if public_key not set
         key = self.id_public_key.encode()
-        self.send_packet(Command.msg_send_pubkey(sender, key))
+        self.send_packet(Command.msg_send_pubkey(sender.encode("utf8"), key))
 
         # Delete existing box
         if sender in self.boxes:
             self.boxes.pop(sender)
 
-    def svr_msg_send_pubkey(self, sender, data):
+    def svr_msg_send_pubkey(self, sender: str, data: bytes):
         """Handle receiving a requested public key from sender"""
         # save key to config file
         if not self.config.has_section("keys"):
             self.config.add_section("keys")
-        self.config.set("keys", sender.decode('utf8'),
-                        base64.b64encode(data).decode("utf8"))
+        self.config.set("keys", sender, base64.b64encode(data).decode("utf8"))
         self.save_config()
         __log__.info(
-            "id key exchange with {} complete".format(sender.decode("utf8")))
+            "id key exchange with {} complete".format(sender))
 
         # Delete existing box
         if sender in self.boxes:
             self.boxes.pop(sender)
 
-    def svr_msg_encrypted_pubkey(self, sender, data):
-        if self.init_pubkey(sender.decode('utf-8')):
+    def svr_msg_encrypted_pubkey(self, sender: str, data: bytes):
+        if self.init_pubkey(sender):
             try:
                 nonce = data[0:nacl.public.Box.NONCE_SIZE]
                 enc = data[nacl.public.Box.NONCE_SIZE:]
-                msg = self.boxes[sender.decode('utf8')].decrypt(enc, nonce)
+                msg = self.boxes[sender].decrypt(enc, nonce)
                 __log__.info("[{} => {}] {}".format(sender, self.name, msg))
                 return
             except nacl.exceptions.CryptoError:
@@ -288,6 +286,7 @@ class Client:
 
     def close(self):
         self.sock.close()
+        self.sock = None
         __log__.info("disconnected from server")
 
     def user_genroomkey(self):
@@ -300,7 +299,7 @@ class Client:
         self.save_config()
         __log__.info("Room key generated")
 
-    def user_sendroomkey(self, name):
+    def user_sendroomkey(self, name: str):
         if self.init_pubkey(name):
             nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
             enc = self.boxes[name].encrypt(self.shared_key, nonce)

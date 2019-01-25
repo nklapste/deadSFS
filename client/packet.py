@@ -110,6 +110,8 @@ class Response:
         elif self.type == ResponseCode.MESSAGE:
             namelen = struct.unpack("!H", raw_data[6:8])[0]
             self.name = self.raw_data[8:8 + namelen]
+            if isinstance(self.name, bytes):
+                self.name = self.name.decode("utf8")
             self.message_type = MessageCode(raw_data[8 + namelen])
 
             if self.message_type == MessageCode.REQ_SHAREKEY:
