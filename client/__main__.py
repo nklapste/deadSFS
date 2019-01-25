@@ -71,6 +71,11 @@ def get_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
+    parser.add_argument("-c", "--config-path", default="deadchat_client.ini",
+                        dest="config_path",
+                        help="Path to read/write the config file for the "
+                             "deadchat client")
+    # TODO: add argument for ca certs
     add_log_parser(parser)
 
     return parser
@@ -81,7 +86,7 @@ def main(argv=sys.argv[1:]) -> int:
     parser = get_parser()
     args = parser.parse_args(argv)
     init_logging(args, "deadchat_client.log")
-    DeadChatShell().cmdloop()
+    DeadChatShell(args.config_path).cmdloop()
     return 0
 
 
