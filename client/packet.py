@@ -8,6 +8,7 @@ from enum import Enum
 
 
 class CommandCode(Enum):
+    FS = 7
     MSG_ALL = 0
     MSG_TO = 1
     ID = 2
@@ -27,6 +28,17 @@ class MessageCode(Enum):
     REQ_PUBKEY = 3
     SEND_PUBKEY = 4
     ENC_PUBKEY = 5
+
+
+class FileSystemCode(Enum):
+    LIST_DIR = 8
+    MAKE_DIR = 9
+    CHANGE_DIR = 10
+    WRITE_FILE = 11
+    READ_FILE = 12
+    DELETE_FILE = 13
+    DELETE_DIR = 14  # TODO re-order
+    # TODO: more defs
 
 
 # Packet
@@ -87,6 +99,59 @@ class Command:
     @staticmethod
     def who() -> bytes:
         return packetize(CommandCode.WHO.value, b"")
+
+    @staticmethod
+    def list_dir(dir_name: bytes) -> bytes:
+        payload = struct.pack("!B", FileSystemCode.LIST_DIR.value)
+        print(dir_name)
+        payload += struct.pack("!H", len(dir_name))
+        payload += dir_name
+        return packetize(CommandCode.FS.value, payload)
+
+    @staticmethod
+    def make_dir(dir_name: bytes) -> bytes:
+        payload = struct.pack("!B", FileSystemCode.MAKE_DIR.value)
+        payload += struct.pack("!H", len(dir_name))
+        payload += dir_name
+        return packetize(CommandCode.FS.value, payload)
+
+    @staticmethod
+    def delete_dir(dir_name: bytes) -> bytes:
+        payload = struct.pack("!B", FileSystemCode.DELETE_DIR.value)
+        payload += struct.pack("!H", len(dir_name))
+        payload += dir_name
+        return packetize(CommandCode.FS.value, payload)
+
+    @staticmethod
+    def change_dir(dir_name: bytes) -> bytes:
+        payload = struct.pack("!B", FileSystemCode.CHANGE_DIR.value)
+        payload += struct.pack("!H", len(dir_name))
+        payload += dir_name
+        return packetize(CommandCode.FS.value, payload)
+
+    @staticmethod
+    def write_file(filename: bytes, content: bytes):
+        # TODO: clean
+        payload = struct.pack("!B", FileSystemCode.WRITE_FILE.value)
+        payload += struct.pack("!H", len(filename))
+        payload += filename
+        payload += struct.pack("!H", len(content))
+        payload += content
+        return packetize(CommandCode.FS.value, payload)
+
+    @staticmethod
+    def read_file(filename: bytes):
+        payload = struct.pack("!B", FileSystemCode.READ_FILE.value)
+        payload += struct.pack("!H", len(filename))
+        payload += filename
+        return packetize(CommandCode.FS.value, payload)
+
+    @staticmethod
+    def delete_file(filename: bytes):
+        payload = struct.pack("!B", FileSystemCode.DELETE_FILE.value)
+        payload += struct.pack("!H", len(filename))
+        payload += filename
+        return packetize(CommandCode.FS.value, payload)
 
 
 class Response:

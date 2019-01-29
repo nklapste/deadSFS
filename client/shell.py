@@ -4,6 +4,8 @@
 """command shell for the deadchat client"""
 
 import cmd
+import getpass
+from ftplib import FTP
 from logging import getLogger
 
 import nacl
@@ -45,6 +47,7 @@ class DeadChatShell(cmd.Cmd):
         super().__init__()
 
         self.client = client
+        self.ftp = FTP()
 
     def print_all_packets(self):
         if self.client.sock:
@@ -73,6 +76,7 @@ class DeadChatShell(cmd.Cmd):
         __log__.info("exiting deadchat client shell")
         if self.client.connected:
             self.client.close()
+        self.ftp.close()
         return True
 
     def do_connect(self, arg):
@@ -132,3 +136,95 @@ class DeadChatShell(cmd.Cmd):
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
         self.client.send_packet(Command.msg_enc_sharekey(enc))
+
+    ###############################
+    # remote filesystem commands
+    ###############################
+    def do_ftp_connect(self, arg):
+        """"""
+        host, port = arg.split()
+        print(self.ftp.connect(host, int(port)))
+
+    def do_ftp_login(self, arg):
+        print(self.ftp.login(user=input("username: "), passwd=getpass.getpass()))
+        self.ftp.set_pasv(True)
+
+    def do_ftp_disconnect(self, arg):
+        """Disconnect from the remote FTP connection"""
+        print(self.ftp.quit())
+
+    def do_list_dir(self, arg):
+        """List the contents of the current working directory of the
+        remote filesystem"""
+        # # TODO: refine
+        # nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        # enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        # self.client.send_packet(Command.list_dir(enc))
+
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        import base64
+        if arg == "" or arg is None:
+            enc_dirs = self.ftp.nlst()
+        else:
+            enc_dir = base64.urlsafe_b64encode(enc).decode("utf-8")
+            enc_dirs = self.ftp.nlst(enc_dir)
+        import base64
+        for enc_dir in enc_dirs:
+            try:
+                data = base64.urlsafe_b64decode(enc_dir)
+                nonce = data[0:nacl.secret.SecretBox.NONCE_SIZE]
+                enc = data[nacl.secret.SecretBox.NONCE_SIZE:]
+                msg = self.client.secretbox.decrypt(enc, nonce)
+                print(msg.decode("utf8"))
+            except nacl.exceptions.ValueError:
+                __log__.exception("failed to decrypt folder")
+                print(enc_dir)
+
+    def do_make_dir(self, arg):
+        """Make a directory with the specified name within the current working
+        directory of the remote filesystem"""
+        # TODO: refine
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        import base64
+        enc_dir = base64.urlsafe_b64encode(enc).decode("utf-8")
+        print(enc_dir.strip())
+        # self.client.send_packet(Command.make_dir(enc))
+        print(self.ftp.mkd(enc_dir.strip()))
+
+    @connected
+    def do_delete_dir(self, arg):
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        self.client.send_packet(Command.delete_dir(enc))
+
+    @connected
+    def do_change_dir(self, arg):
+        """Change the current working directory of the remote filesystem"""
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        self.client.send_packet(Command.change_dir(enc))
+
+    @connected
+    def do_write_file(self, arg):
+        # TODO: refine
+        filename, content = arg.split(" ", 1)
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc_filename = self.client.secretbox.encrypt(filename.encode('utf-8'), nonce)
+        enc_content = self.client.secretbox.encrypt(content.encode('utf-8'), nonce)
+        self.client.send_packet(Command.write_file(enc_filename, enc_content))
+
+    @connected
+    def do_read_file(self, arg):
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        self.client.send_packet(Command.read_file(enc))
+
+    @connected
+    def do_delete_file(self, arg):
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
+        self.client.send_packet(Command.delete_file(enc))
+
+

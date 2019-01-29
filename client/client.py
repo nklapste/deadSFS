@@ -171,7 +171,20 @@ class Client:
                 self._receive_encrypted_public_key(resp.name, resp.data)
 
     def _receive_server_notice(self, data: bytes):
-        __log__.info("[server notice] {}".format(data.decode("utf-8")))
+        __log__.info("[server notice] {}".format(data))
+        # TODO: expirementing
+        try:
+            nonce = data[0:nacl.secret.SecretBox.NONCE_SIZE]
+            enc = data[nacl.secret.SecretBox.NONCE_SIZE:]
+            if self.secretbox:
+                try:
+                    msg = self.secretbox.decrypt(enc, nonce)
+                    __log__.info("[test] {}".format(msg))
+                    return
+                except nacl.exceptions.CryptoError:
+                    __log__.exception("unable to decrypt message")
+        except Exception:
+            __log__.exception("testing")
 
     def _receive_request_share_key(self, sender: str):
         __log__.info("user {} requests the room key".format(sender))
