@@ -212,25 +212,35 @@ class DeadChatShell(cmd.Cmd):
         else:
             print(self.ftp.cwd(self.get_pwd_encrypted_filename(arg)))
 
-    @connected
     def do_write_file(self, arg):
-        # TODO: refine
-        filename, content = arg.split(" ", 1)
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc_filename = self.client.secretbox.encrypt(filename.encode('utf-8'), nonce)
-        enc_content = self.client.secretbox.encrypt(content.encode('utf-8'), nonce)
-        self.client.send_packet(Command.write_file(enc_filename, enc_content))
+        try:
+            enc_filename = self.get_pwd_encrypted_filename(arg)
+        except FileNotFoundError:
+            enc_filename = self.ftp_encrypt(arg)
+        cmd = "STOR {}".format(enc_filename)
+        with open(arg, "r") as f:
+            import io
+            buf = io.BytesIO(self.ftp_encrypt(f.read()).encode("utf8"))
+            print(self.ftp.storbinary(cmd, buf))
 
-    @connected
     def do_read_file(self, arg):
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
-        self.client.send_packet(Command.read_file(enc))
+        enc_filename = self.get_pwd_encrypted_filename(arg)
+        cmd = "RETR {}".format(enc_filename)
+        print(cmd)
+        f = open("tempcrypt", "w")
 
-    @connected
+        def callback(data: bytes):
+            print(data)
+            f.write(data.decode("utf-8"))
+        self.ftp.retrbinary(cmd, callback)
+        f.close()
+        f = open("tempcrypt", "rb")
+        content = self.ftp_decrypt(f.read().decode("utf-8"))
+        print("obtained {}'s content: {}".format(arg, content))
+        with open(arg, "w") as f:
+            f.write(content)
+
     def do_delete_file(self, arg):
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
-        self.client.send_packet(Command.delete_file(enc))
+        print(self.ftp.delete(self.get_pwd_encrypted_filename(arg)))
 
 
