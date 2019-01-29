@@ -155,6 +155,21 @@ class DeadChatShell(cmd.Cmd):
         """Disconnect from the remote FTP server"""
         print(self.ftp.quit())
 
+    def ftp_encrypt_filename(self, string: str, content: str = None) -> str:
+        import hashlib
+        h = hashlib.new("sha256")
+        h.update(string.encode("uft-8"))
+        if content:
+            h.update(content.encode("utf-8"))
+        hash = h.hexdigest()
+        return self.ftp_encrypt("{}{}".format(hash, string))
+
+    def ftp_decrypt_filename(self, safe_enc_string: str):
+        raw = self.ftp_decrypt(safe_enc_string)
+        hash = raw[0:64]
+        filename = raw[64:]
+        return hash, filename
+
     def ftp_encrypt(self, string: str) -> str:
         """Encrypt a string for usage in the FTP server using the shared room
         key obtained from the deadchat client"""
@@ -186,6 +201,7 @@ class DeadChatShell(cmd.Cmd):
                 return enc_filename
         else:
             raise FileNotFoundError("given directory does not exist within PWD")
+
 
     def do_list_dir(self, arg):
         """List the contents of the current working directory of the
