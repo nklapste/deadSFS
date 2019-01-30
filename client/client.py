@@ -30,7 +30,7 @@ class Client:
 
     MAX_NAME_LENGTH = 65535
 
-    def __init__(self, config_path: str, ca_certs: str):
+    def __init__(self, config_path: str, ca_certs: str = None):
         """Init a client to interact with the deadchat server and other
         deadchat clients"""
         self.config_path = config_path
