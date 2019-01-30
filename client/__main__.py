@@ -74,8 +74,7 @@ def get_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("-c", "--config-path", default="deadchat_client.ini",
                         dest="config_path",
-                        help="Path to read/write the config file for the "
-                             "deadchat client")
+                        help="Path to read/write the user config file")
     parser.add_argument("-ca", "--ca-certs", default=None, dest="ca_certs",
                         help="If specified enable using ca certificate "
                              "validation using certificates at the specified "
