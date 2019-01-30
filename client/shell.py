@@ -37,6 +37,22 @@ def connected(f):
     return wrapper
 
 
+def ftp_connected(f):
+    """Annotation to check if someone is connected before attempting a
+    command in :class:`DeadChatShell`"""
+
+    def wrapper(*args):
+        if args[0].ftp.sock:
+            return f(*args)
+        else:
+            __log__.error(
+                "you must be connected to a deadchat ftp server to "
+                "use this function"
+            )
+
+    return wrapper
+
+
 class DeadChatShell(cmd.Cmd):
     """Main shell for the deadchat client"""
     intro = "Welcome to deadchat client shell. " \
@@ -147,6 +163,7 @@ class DeadChatShell(cmd.Cmd):
         host, port = arg.split()
         print(self.ftp.connect(host, int(port)))
 
+    @ftp_connected
     def do_ftp_login(self, arg):
         """Login to the remote FTP server"""
         print(self.ftp.login(user=input("username: "), passwd=getpass.getpass()))
@@ -197,6 +214,7 @@ class DeadChatShell(cmd.Cmd):
                         "remote filesystem")
         return safe_enc_string
 
+    @ftp_connected
     def get_pwd_encrypted_path(self, path: str):
         enc_filenames = self.ftp.nlst()
         for enc_filename in enc_filenames:
@@ -209,6 +227,7 @@ class DeadChatShell(cmd.Cmd):
             raise FileNotFoundError(
                 "path: {} does not exist within PWD".format(path))
 
+    @ftp_connected
     def do_list_dir(self, arg):
         """List the contents of the current working directory of the
         remote filesystem"""
@@ -219,14 +238,17 @@ class DeadChatShell(cmd.Cmd):
         for enc_dir in enc_dirs:
             print(self.ftp_decrypt(enc_dir))
 
+    @ftp_connected
     def do_make_dir(self, arg):
         """Make a directory with the specified name within the current working
         directory of the remote filesystem"""
         print(self.ftp.mkd(self.ftp_encrypt(arg)))
 
+    @ftp_connected
     def do_delete_dir(self, arg):
         print(self.ftp.rmd(self.get_pwd_encrypted_path(arg)))
 
+    @ftp_connected
     def do_change_dir(self, arg):
         """Change the current working directory of the remote filesystem"""
         if arg == "..":  # TODO: more elegant solution
@@ -234,6 +256,7 @@ class DeadChatShell(cmd.Cmd):
         else:
             print(self.ftp.cwd(self.get_pwd_encrypted_path(arg)))
 
+    @ftp_connected
     def do_write_file(self, arg):
         try:
             enc_filename = self.get_pwd_encrypted_path(arg)
@@ -245,6 +268,7 @@ class DeadChatShell(cmd.Cmd):
             buf = io.BytesIO(self.ftp_encrypt(f.read()).encode("utf8"))
             print(self.ftp.storbinary(cmd, buf))
 
+    @ftp_connected
     def do_read_file(self, arg):
         enc_filename = self.get_pwd_encrypted_path(arg)
         cmd = "RETR {}".format(enc_filename)
@@ -260,5 +284,6 @@ class DeadChatShell(cmd.Cmd):
         with open(arg, "w") as f:
             f.write(content)
 
+    @ftp_connected
     def do_delete_file(self, arg):
         print(self.ftp.delete(self.get_pwd_encrypted_path(arg)))
