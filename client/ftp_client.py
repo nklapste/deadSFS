@@ -66,7 +66,7 @@ class EncryptedFTPClient(FTP):
         return safe_enc_string
 
     def get_pwd_encrypted_path(self, path: str):
-        for enc_filename in self.nlst(path):
+        for enc_filename in super().nlst():
             dec_filename = self.ftp_decrypt(enc_filename)
             if path == dec_filename:
                 __log__.info("found match for name: {} -> {}".format(
@@ -78,9 +78,9 @@ class EncryptedFTPClient(FTP):
 
     def nlst(self, dirname: str, *args):
         if dirname == "" or dirname is None:
-            enc_dirs = super().nlst(args)
+            enc_dirs = super().nlst(*args)
         else:
-            enc_dirs = super().nlst(self.ftp_encrypt(dirname), args)
+            enc_dirs = super().nlst(self.ftp_encrypt(dirname), *args)
         return list(map(self.ftp_decrypt, enc_dirs))
 
     def mkd(self, dirname: str):
