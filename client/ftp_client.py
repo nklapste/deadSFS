@@ -26,11 +26,10 @@ class EncryptedFTPClient(FTP):
     def ftp_encrypt(self, string: str) -> str:
         """Encrypt a string for usage in the FTP server using the shared room
         key obtained from the deadchat client"""
-        import hashlib
         sha = hashlib.new("sha256")
         sha.update(string.encode("utf-8"))
-        hash = sha.hexdigest()
-        base_content = "{}{}".format(hash, string)
+        computed_hash = sha.hexdigest()
+        base_content = "{}{}".format(computed_hash, string)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         enc_string = self.secretbox.encrypt(base_content.encode('utf-8'),
                                             nonce)
@@ -47,15 +46,13 @@ class EncryptedFTPClient(FTP):
             base_content = self.secretbox.decrypt(enc, nonce)
             given_hash = base_content[0:64].decode("utf-8")
             string = base_content[64:]
-            # validate
             sha = hashlib.new("sha256")
             sha.update(string.decode("utf8").encode("utf-8"))
             computed_hash = sha.hexdigest()
             if computed_hash == given_hash:
                 __log__.info("decrypted FTP message: {}".format(string))
                 return string.decode("utf-8")
-            else:
-                __log__.error(
+            __log__.error(
                     "checksum error given hash:{} computed hash: {}".format(
                         given_hash, computed_hash))
         except Exception:
@@ -72,9 +69,7 @@ class EncryptedFTPClient(FTP):
                 __log__.info("found match for name: {} -> {}".format(
                     path, enc_filename))
                 return enc_filename
-        else:
-            raise FileNotFoundError(
-                "path: {} does not exist within PWD".format(path))
+        raise FileNotFoundError("path: {} does not exist in PWD".format(path))
 
     def nlst(self, dirname: str, *args):
         if dirname == "" or dirname is None:
@@ -92,8 +87,7 @@ class EncryptedFTPClient(FTP):
     def cwd(self, dirname: str):
         if dirname == "..":  # TODO: more elegant solution
             return super().cwd(dirname)
-        else:
-            return super().cwd(self.get_pwd_encrypted_path(dirname))
+        return super().cwd(self.get_pwd_encrypted_path(dirname))
 
     def delete(self, filename: str):
         return super().delete(self.get_pwd_encrypted_path(filename))
