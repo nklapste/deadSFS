@@ -8,7 +8,6 @@ from enum import Enum
 
 
 class CommandCode(Enum):
-    MSG_ALL = 0
     MSG_TO = 1
     ID = 2
     WHO = 3
@@ -21,12 +20,9 @@ class ResponseCode(Enum):
 
 
 class MessageCode(Enum):
-    REQ_SHAREKEY = 0
-    SEND_SHAREKEY = 1
-    ENC_SHAREKEY = 2
-    REQ_PUBKEY = 3
-    SEND_PUBKEY = 4
-    ENC_PUBKEY = 5
+    SEND_SHARED_FS_KEY = 1
+    REQUEST_PUBLIC_ID_KEY = 3
+    SEND_PUBLIC_ID_KEY = 4
 
 
 # [header] [packet len except header (4)] [type (1)] [payload]
@@ -39,45 +35,27 @@ class Command:
     """Factory class for creating various command packets for deadchat"""
 
     @staticmethod
-    def msg_req_sharekey() -> bytes:
-        payload = struct.pack("!B", MessageCode.REQ_SHAREKEY.value)
-        return packetize(CommandCode.MSG_ALL.value, payload)
-
-    @staticmethod
-    def msg_enc_sharekey(data: bytes) -> bytes:
-        payload = struct.pack("!B", MessageCode.ENC_SHAREKEY.value) + data
-        return packetize(CommandCode.MSG_ALL.value, payload)
-
-    @staticmethod
-    def msg_send_sharekey(recipient: str, data: bytes) -> bytes:
+    def send_shared_fs_key(recipient: str, enc_shared_fs_key: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.SEND_SHAREKEY.value)
-        payload += data
+        payload += struct.pack("!B", MessageCode.SEND_SHARED_FS_KEY.value)
+        payload += enc_shared_fs_key
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
-    def msg_req_pubkey(recipient: str, mykey: bytes) -> bytes:
+    def request_public_id_key(recipient: str, public_id_key: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.REQ_PUBKEY.value)
-        payload += mykey
+        payload += struct.pack("!B", MessageCode.REQUEST_PUBLIC_ID_KEY.value)
+        payload += public_id_key
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
-    def msg_send_pubkey(recipient: str, data: bytes) -> bytes:
+    def send_public_id_key(recipient: str, public_id_key: bytes) -> bytes:
         payload = struct.pack("!H", len(recipient))
         payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.SEND_PUBKEY.value)
-        payload += data
-        return packetize(CommandCode.MSG_TO.value, payload)
-
-    @staticmethod
-    def msg_enc_pubkey(recipient: str, data: bytes) -> bytes:
-        payload = struct.pack("!H", len(recipient))
-        payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.ENC_PUBKEY.value)
-        payload += data
+        payload += struct.pack("!B", MessageCode.SEND_PUBLIC_ID_KEY.value)
+        payload += public_id_key
         return packetize(CommandCode.MSG_TO.value, payload)
 
     @staticmethod
@@ -114,15 +92,9 @@ class Response:
                 self.name = self.name.decode("utf8")
             self.message_type = MessageCode(raw_data[8 + namelen])
 
-            if self.message_type == MessageCode.REQ_SHAREKEY:
-                pass
-            elif self.message_type == MessageCode.SEND_SHAREKEY:
+            if self.message_type == MessageCode.SEND_SHARED_FS_KEY:
                 self.data = raw_data[8 + namelen + 1:]
-            elif self.message_type == MessageCode.ENC_SHAREKEY:
+            elif self.message_type == MessageCode.REQUEST_PUBLIC_ID_KEY:
                 self.data = raw_data[8 + namelen + 1:]
-            elif self.message_type == MessageCode.REQ_PUBKEY:
-                self.data = raw_data[8 + namelen + 1:]
-            elif self.message_type == MessageCode.SEND_PUBKEY:
-                self.data = raw_data[8 + namelen + 1:]
-            elif self.message_type == MessageCode.ENC_PUBKEY:
+            elif self.message_type == MessageCode.SEND_PUBLIC_ID_KEY:
                 self.data = raw_data[8 + namelen + 1:]

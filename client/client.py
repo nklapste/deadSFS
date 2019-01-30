@@ -93,7 +93,7 @@ class Client:
         if self.check_public_key(target_user):
             nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
             enc = self.boxes[target_user].encrypt(self.shared_key, nonce)
-            self.send_packet(Command.msg_send_sharekey(target_user, enc))
+            self.send_packet(Command.send_shared_fs_key(target_user, enc))
             __log__.info("sent room key to {}".format(target_user))
 
     def check_public_key(self, target_user: str) -> bool:
@@ -141,15 +141,8 @@ class Client:
 
     def exchange_id_key(self, target_user: str):
         key = self.id_public_key.encode()
-        self.send_packet(Command.msg_req_pubkey(target_user, key))
+        self.send_packet(Command.request_public_id_key(target_user, key))
         __log__.info("exchanging id keys with user {}".format(target_user))
-
-    def message(self, target_user: str, msg: str):
-        if self.check_public_key(target_user):
-            nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
-            enc = self.boxes[target_user].encrypt(msg.encode('utf8'), nonce)
-            self.send_packet(Command.msg_enc_pubkey(target_user, enc))
-            __log__.info("[{} => {}] {}".format(self.name, target_user, msg))
 
     def handle_response(self, resp: Response):
         if resp.type == ResponseCode.DISCONNECTED:
@@ -157,24 +150,15 @@ class Client:
         elif resp.type == ResponseCode.NOTICE:
             self._receive_server_notice(resp.data)
         elif resp.type == ResponseCode.MESSAGE:
-            if resp.message_type == MessageCode.REQ_SHAREKEY:
-                self._receive_request_share_key(resp.name)
-            elif resp.message_type == MessageCode.SEND_SHAREKEY:
+            if resp.message_type == MessageCode.SEND_SHARED_FS_KEY:
                 self._receive_send_share_key(resp.name, resp.data)
-            elif resp.message_type == MessageCode.ENC_SHAREKEY:
-                self._receive_encrypted_share_key(resp.name, resp.data)
-            elif resp.message_type == MessageCode.REQ_PUBKEY:
+            elif resp.message_type == MessageCode.REQUEST_PUBLIC_ID_KEY:
                 self._receive_request_public_key(resp.name, resp.data)
-            elif resp.message_type == MessageCode.SEND_PUBKEY:
+            elif resp.message_type == MessageCode.SEND_PUBLIC_ID_KEY:
                 self._receive_send_public_key(resp.name, resp.data)
-            elif resp.message_type == MessageCode.ENC_PUBKEY:
-                self._receive_encrypted_public_key(resp.name, resp.data)
 
     def _receive_server_notice(self, data: bytes):
         __log__.info("[server notice] {}".format(data))
-
-    def _receive_request_share_key(self, sender: str):
-        __log__.info("user {} requests the room key".format(sender))
 
     def _receive_send_share_key(self, sender: str, data: bytes):
         if self.check_public_key(sender):
@@ -194,18 +178,6 @@ class Client:
                 __log__.exception("error decrypting given room sent "
                                   "from user {}".format(sender))
 
-    def _receive_encrypted_share_key(self, sender: str, data: bytes):
-        nonce = data[0:nacl.secret.SecretBox.NONCE_SIZE]
-        enc = data[nacl.secret.SecretBox.NONCE_SIZE:]
-        if self.secretbox:
-            try:
-                msg = self.secretbox.decrypt(enc, nonce)
-                __log__.info("[{} => all] {}".format(sender, msg))
-                return
-            except nacl.exceptions.CryptoError:
-                __log__.exception("unable to decrypt message")
-        __log__.error("[{} => all] (encrypted)".format(sender))
-
     def _receive_request_public_key(self, sender: str, data: bytes):
         """Handle a request for my public key"""
         __log__.info("received id key request from user {}".format(sender))
@@ -218,7 +190,7 @@ class Client:
 
         # TODO: handle if public_key not set
         key = self.id_public_key.encode()
-        self.send_packet(Command.msg_send_pubkey(sender, key))
+        self.send_packet(Command.send_public_id_key(sender, key))
 
         # Delete existing box
         if sender in self.boxes:
@@ -236,18 +208,6 @@ class Client:
         # Delete existing box
         if sender in self.boxes:
             self.boxes.pop(sender)
-
-    def _receive_encrypted_public_key(self, sender: str, data: bytes):
-        if self.check_public_key(sender):
-            try:
-                nonce = data[0:nacl.public.Box.NONCE_SIZE]
-                enc = data[nacl.public.Box.NONCE_SIZE:]
-                msg = self.boxes[sender].decrypt(enc, nonce)
-                __log__.info("[{} => {}] {}".format(sender, self.name, msg))
-            except nacl.exceptions.CryptoError:
-                __log__.exception("[{} => {}] (WARNING: unable to decrypt. "
-                                  "One of you may have changed keys or might "
-                                  "be an imposter)".format(sender, self.name))
 
     def send_packet(self, packet: bytes) -> int:
         """Send a packet to the server"""

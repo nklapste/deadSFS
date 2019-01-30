@@ -8,12 +8,6 @@ import getpass
 from functools import wraps
 from logging import getLogger
 
-import nacl
-import nacl.exceptions
-import nacl.public
-import nacl.secret
-import nacl.utils
-
 from client.client import Client
 from client.ftp_client import EncryptedFTPClient
 from client.packet import Command
@@ -141,19 +135,6 @@ class DeadChatShell(cmd.Cmd):
     def do_send_fs_key(self, arg):
         """Send a secret key for a shared remote filesystem securely"""
         self.client.send_room_key(arg)
-
-    @connected
-    def do_msg(self, arg):
-        """Privately message one user"""
-        user, msg = arg.split(" ", 1)
-        self.client.message(user, msg)
-
-    @connected
-    def do_msg_all(self, arg):
-        """Message all users with the room key"""
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc = self.client.secretbox.encrypt(arg.encode('utf-8'), nonce)
-        self.client.send_packet(Command.msg_enc_sharekey(enc))
 
     ###############################
     # remote filesystem commands
