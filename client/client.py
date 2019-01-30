@@ -239,7 +239,7 @@ class Client:
 
     def get_packet(self) -> Optional[Response]:
         """Receive a packet from the server"""
-        r, w, e = select.select([self.sock], [], [], 0.125)
+        r, _, _ = select.select([self.sock], [], [], 0.125)
         for sock in r:
             if sock == self.sock:
                 try:
