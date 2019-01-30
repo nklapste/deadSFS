@@ -81,7 +81,6 @@ class DeadChatShell(cmd.Cmd):
         return super().postcmd(stop, line)
 
     def postloop(self):
-        """"""
         if self.client.connected:
             self.client.close()
 
@@ -102,9 +101,8 @@ class DeadChatShell(cmd.Cmd):
             __log__.error("Missing name, set using `create_id_key`")
             return
         # TODO: argument argparsing
-        host = "localhost"
-        port = 6150
-        self.client.connect(host, port)
+        host, port = arg.split(" ", 1)
+        self.client.connect(host, int(port))
         self.client.send_packet(Command.ident(self.client.name))
 
     @connected
