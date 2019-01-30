@@ -231,12 +231,11 @@ class Client:
                         tmp = sock.read(4096)
                         if not tmp:
                             return Response()
-                        else:
-                            packet += tmp
-                            read_bytes += len(tmp)
-                            header_index = packet.find(b'\xde')
-                            if header_index + 4 <= read_bytes:
-                                packet_complete = True
+                        packet += tmp
+                        read_bytes += len(tmp)
+                        header_index = packet.find(b'\xde')
+                        if header_index + 4 <= read_bytes:
+                            packet_complete = True
 
                     # Drop bytes before header
                     packet = packet[header_index:]
@@ -246,9 +245,8 @@ class Client:
                         tmp = sock.read(4096)
                         if not tmp:
                             return Response()
-                        else:
-                            packet.append(tmp)
-                            read_bytes += len(tmp)
+                        packet.append(tmp)
+                        read_bytes += len(tmp)
                     return Response(packet)
                 except socket.error:
                     return
