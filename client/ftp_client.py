@@ -16,6 +16,8 @@ __log__ = getLogger(__name__)
 
 
 class EncryptedFTPClient(FTP):
+    """Simple wrapper class of :class:`ftplib.FTP` the encrypts both a
+    file's name and contents before sending it to the remote FTP server"""
 
     def __init__(self, secretbox: nacl.secret.SecretBox, **kwargs):
         self.secretbox = secretbox
