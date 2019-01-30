@@ -8,9 +8,9 @@ import getpass
 from functools import wraps
 from logging import getLogger
 
-from client.client import Client
+from client.deadchat_client import DeadchatClient
 from client.ftp_client import EncryptedFTPClient
-from client.packet import Command
+from client.packet import Who
 
 __log__ = getLogger(__name__)
 
@@ -58,7 +58,7 @@ class DeadChatShell(cmd.Cmd):
         """Initialize the deadchat client shell"""
         super().__init__()
 
-        self.client = Client(config_path, ca_certs)
+        self.client = DeadchatClient(config_path, ca_certs)
         self.ftp_client = EncryptedFTPClient(self.client.secretbox)
 
     def print_all_packets(self):
@@ -113,7 +113,6 @@ class DeadChatShell(cmd.Cmd):
             return
         host, port = arg.split(" ", 1)
         self.client.connect(host, int(port))
-        self.client.send_packet(Command.ident(self.client.name))
 
     @connected
     def do_disconnect(self, arg):
@@ -123,7 +122,7 @@ class DeadChatShell(cmd.Cmd):
     @connected
     def do_who(self, arg):
         """Get a list of users connected to the server"""
-        self.client.send_packet(Command.who())
+        self.client.send_packet(Who().to_packet())
 
     def do_create_id_key(self, arg):
         """Create your own identity and associated keys"""

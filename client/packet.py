@@ -25,52 +25,78 @@ class MessageCode(Enum):
     SEND_PUBLIC_ID_KEY = 4
 
 
-# [header] [packet len except header (4)] [type (1)] [payload]
-def packetize(command: int, payload: bytes) -> bytes:
-    packet_length = len(payload) + 1
-    return struct.pack("!cIB", b'\xde', packet_length, command) + payload
-
-
 class Command:
-    """Factory class for creating various command packets for deadchat"""
+    command_code: CommandCode
+    payload: bytes
 
-    @staticmethod
-    def send_shared_fs_key(recipient: str, enc_shared_fs_key: bytes) -> bytes:
-        payload = struct.pack("!H", len(recipient))
-        payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.SEND_SHARED_FS_KEY.value)
-        payload += enc_shared_fs_key
-        return packetize(CommandCode.MSG_TO.value, payload)
+    def to_packet(self):
+        """Convert the command into a packet to send
 
-    @staticmethod
-    def request_public_id_key(recipient: str, public_id_key: bytes) -> bytes:
-        payload = struct.pack("!H", len(recipient))
-        payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.REQUEST_PUBLIC_ID_KEY.value)
-        payload += public_id_key
-        return packetize(CommandCode.MSG_TO.value, payload)
+        The packet format follows:
+        [header] [packet len except header (4)] [type (1)] [payload]
+        """
+        return struct.pack(
+            "!cIB",
+            b'\xde',
+            len(self.payload) + 1,
+            self.command_code
+        ) + self.payload
 
-    @staticmethod
-    def send_public_id_key(recipient: str, public_id_key: bytes) -> bytes:
-        payload = struct.pack("!H", len(recipient))
-        payload += recipient.encode('utf-8')
-        payload += struct.pack("!B", MessageCode.SEND_PUBLIC_ID_KEY.value)
-        payload += public_id_key
-        return packetize(CommandCode.MSG_TO.value, payload)
 
-    @staticmethod
-    def ident(name: str) -> bytes:
-        return packetize(CommandCode.ID.value, name.encode('utf-8'))
+class MessageToCommand(Command):
+    command_code = CommandCode.MSG_TO
+    message_code: MessageCode
+    header: str
+    content: bytes
 
-    @staticmethod
-    def who() -> bytes:
-        return packetize(CommandCode.WHO.value, b"")
+    def to_packet(self):
+        payload = struct.pack("!H", len(self.header))
+        payload += self.header.encode('utf-8')
+        payload += struct.pack("!B", self.message_code.value)
+        payload += self.content
+        self.payload = payload
+
+
+class SendShareFSKey(MessageToCommand):
+    message_code = MessageCode.SEND_SHARED_FS_KEY
+
+    def __init__(self, recipient: str, enc_shared_fs_key: bytes):
+        self.header = recipient
+        self.content = enc_shared_fs_key
+
+
+class RequestPublicIDKey(MessageToCommand):
+    message_code = MessageCode.REQUEST_PUBLIC_ID_KEY
+
+    def __init__(self, recipient: str, public_id_key: bytes):
+        self.header = recipient
+        self.content = public_id_key
+
+
+class SendPublicIDKey(MessageToCommand):
+    message_code = MessageCode.SEND_PUBLIC_ID_KEY
+
+    def __init__(self, recipient: str, public_id_key: bytes):
+        self.header = recipient
+        self.content = public_id_key
+
+
+class OnlineID(Command):
+    command_code = CommandCode.ID
+
+    def __init__(self, name: str):
+        self.payload = name.encode('utf-8')
+
+
+class Who(Command):
+    command_code = CommandCode.WHO
+    payload = b""
 
 
 class Response:
     def __init__(self, raw_data: bytes = None):
         self.raw_data = raw_data
-        self.type = None
+        self.type: ResponseCode = None
 
         self.name = None
         self.message_type = None

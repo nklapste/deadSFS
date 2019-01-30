@@ -9,7 +9,6 @@ import os
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
-from client.client import Client
 from client.shell import DeadChatShell
 
 LOG_LEVEL_STRINGS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]

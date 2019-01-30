@@ -18,12 +18,13 @@ import nacl.public
 import nacl.secret
 import nacl.utils
 
-from client.packet import Response, ResponseCode, Command, MessageCode
+from client.packet import Response, ResponseCode, MessageCode, \
+    OnlineID, SendPublicIDKey, SendShareFSKey, RequestPublicIDKey
 
 __log__ = getLogger(__name__)
 
 
-class Client:
+class DeadchatClient:
     """client that handles key generation and sharing to establish the
     proper keys to use the :class:`client.ftp_client.EncryptedFTPClient`
     effectively."""
@@ -75,6 +76,7 @@ class Client:
             self.config.set("server", "host", str(host))
             self.config.set("server", "port", str(port))
             self._save_config()
+            self.send_packet(OnlineID(self.name).to_packet())
 
     def close(self):
         """Disconnect from the deadchat server"""
@@ -100,7 +102,7 @@ class Client:
         specified user"""
         if self.check_public_id_key(target_user):
             enc = self.boxes[target_user].encrypt(self.shared_key)
-            self.send_packet(Command.send_shared_fs_key(target_user, enc))
+            self.send_packet(SendShareFSKey(target_user, enc).to_packet())
             __log__.info("sent room key to {}".format(target_user))
 
     def check_public_id_key(self, target_user: str) -> bool:
@@ -127,7 +129,7 @@ class Client:
 
     def create_id_key(self, name: str):
         """Create a public and private id key for this client"""
-        if len(name) > Client.MAX_NAME_LENGTH:
+        if len(name) > DeadchatClient.MAX_NAME_LENGTH:
             __log__.error("user name {} is too long".format(name))
             return
 
@@ -155,7 +157,7 @@ class Client:
         """Make a request for exchanging public id keys between this client
         and the target user"""
         key = self.id_public_key.encode()
-        self.send_packet(Command.request_public_id_key(target_user, key))
+        self.send_packet(RequestPublicIDKey(target_user, key).to_packet())
         __log__.info("exchanging public id keys with user {}".format(
             target_user))
 
@@ -207,7 +209,7 @@ class Client:
 
         # TODO: handle if public_key not set
         key = self.id_public_key.encode()
-        self.send_packet(Command.send_public_id_key(sender, key))
+        self.send_packet(SendPublicIDKey(sender, key).to_packet())
 
         # Delete existing box
         if sender in self.boxes:
