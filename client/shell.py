@@ -54,12 +54,12 @@ class DeadChatShell(cmd.Cmd):
             "Type help or ? to list commands"
     prompt = "deadchat>"
 
-    def __init__(self, client: Client):
+    def __init__(self, config_path: str, ca_certs: str):
         """Initialize the deadchat client shell"""
         super().__init__()
 
-        self.client = client
-        self.ftp_client = EncryptedFTPClient(client.secretbox)
+        self.client = Client(config_path, ca_certs)
+        self.ftp_client = EncryptedFTPClient(self.client.secretbox)
 
     def print_all_packets(self):
         """Poll for incoming packets from the deadchat server and
