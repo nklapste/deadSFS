@@ -178,12 +178,13 @@ class DeadChatShell(cmd.Cmd):
 
     @ftp_connected
     def do_mkd(self, arg):
-        """Make a directory with the specified name within the current working
-        directory of the remote filesystem"""
+        """Make a sub-directory within the current working directory
+        of the remote filesystem"""
         print(self.ftp_client.mkd(arg))
 
     @ftp_connected
     def do_rmd(self, arg):
+        """Remove a directory from the remote filesystem"""
         print(self.ftp_client.rmd(arg))
 
     @ftp_connected
@@ -193,11 +194,13 @@ class DeadChatShell(cmd.Cmd):
 
     @ftp_connected
     def do_wf(self, arg):
+        """Encrypt and write a file into the remote filesystem"""
         with open(arg, "r") as f:
             print(self.ftp_client.storefile(arg, f.read()))
 
     @ftp_connected
     def do_rf(self, arg):
+        """Read and decrypt a file from the remote filesystem"""
         content = self.ftp_client.readfile(arg)
         print("obtained {}'s content:\n{}".format(arg, content))
         with open(arg, "w") as f:
@@ -205,4 +208,5 @@ class DeadChatShell(cmd.Cmd):
 
     @ftp_connected
     def do_rmf(self, arg):
+        """Delete a file from the remote filesystem"""
         print(self.ftp_client.delete(arg))
