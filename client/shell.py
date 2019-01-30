@@ -19,6 +19,7 @@ def connected(f):
     """Annotation to check if that the command shell is connected to a
     deadchat server before attempting a deadchat command in
     :class:`DeadChatShell`"""
+
     @wraps(f)
     def wrapper(*args):
         if args[0].client.connected:
@@ -35,6 +36,7 @@ def connected(f):
 def ftp_connected(f):
     """Annotation to check if that the command shell is connected to a
     ftp server before attempting a ftp command in :class:`DeadChatShell`"""
+
     @wraps(f)
     def wrapper(*args):
         if args[0].ftp.sock:
@@ -144,7 +146,8 @@ class DeadChatShell(cmd.Cmd):
         """Connect and login into the remote FTP server"""
         host, port = arg.split()
         print(self.ftp_client.connect(host, int(port)))
-        print(self.ftp_client.login(user=input("username: "), passwd=getpass.getpass()))
+        print(self.ftp_client.login(user=input("username: "),
+                                    passwd=getpass.getpass()))
         self.ftp_client.set_pasv(True)
 
     def do_ftp_disconnect(self, arg):
