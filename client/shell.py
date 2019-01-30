@@ -39,7 +39,7 @@ def ftp_connected(f):
 
     @wraps(f)
     def wrapper(*args):
-        if args[0].ftp.sock:
+        if args[0].ftp_client.sock:
             return f(*args)
         else:
             __log__.error(
