@@ -99,8 +99,7 @@ class Client:
         """Sent the **private key** for the remote filesystem to the
         specified user"""
         if self.check_public_id_key(target_user):
-            nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
-            enc = self.boxes[target_user].encrypt(self.shared_key, nonce)
+            enc = self.boxes[target_user].encrypt(self.shared_key)
             self.send_packet(Command.send_shared_fs_key(target_user, enc))
             __log__.info("sent room key to {}".format(target_user))
 

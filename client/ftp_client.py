@@ -30,9 +30,7 @@ class EncryptedFTPClient(FTP):
         sha.update(string.encode("utf-8"))
         computed_hash = sha.hexdigest()
         base_content = "{}{}".format(computed_hash, string)
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc_string = self.secretbox.encrypt(base_content.encode('utf-8'),
-                                            nonce)
+        enc_string = self.secretbox.encrypt(base_content.encode('utf-8'))
         safe_enc_string = base64.urlsafe_b64encode(enc_string).decode("utf-8")
         return safe_enc_string.strip()
 
