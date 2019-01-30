@@ -5,6 +5,7 @@
 
 import cmd
 import getpass
+from functools import wraps
 from logging import getLogger
 
 import nacl
@@ -24,7 +25,7 @@ def connected(f):
     """Annotation to check if that the command shell is connected to a
     deadchat server before attempting a deadchat command in
     :class:`DeadChatShell`"""
-
+    @wraps(f)
     def wrapper(*args):
         if args[0].client.connected:
             return f(*args)
@@ -40,7 +41,7 @@ def connected(f):
 def ftp_connected(f):
     """Annotation to check if that the command shell is connected to a
     ftp server before attempting a ftp command in :class:`DeadChatShell`"""
-
+    @wraps(f)
     def wrapper(*args):
         if args[0].ftp.sock:
             return f(*args)
