@@ -65,6 +65,7 @@ class Client:
         except Exception:
             __log__.exception(
                 "unable to connect to {} on port {}".format(host, port))
+            raise
         else:
             __log__.info("connected to {} on port {}".format(host, port))
             self.connected = True
