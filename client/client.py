@@ -172,19 +172,6 @@ class Client:
 
     def _receive_server_notice(self, data: bytes):
         __log__.info("[server notice] {}".format(data))
-        # TODO: expirementing
-        try:
-            nonce = data[0:nacl.secret.SecretBox.NONCE_SIZE]
-            enc = data[nacl.secret.SecretBox.NONCE_SIZE:]
-            if self.secretbox:
-                try:
-                    msg = self.secretbox.decrypt(enc, nonce)
-                    __log__.info("[test] {}".format(msg))
-                    return
-                except nacl.exceptions.CryptoError:
-                    __log__.exception("unable to decrypt message")
-        except Exception:
-            __log__.exception("testing")
 
     def _receive_request_share_key(self, sender: str):
         __log__.info("user {} requests the room key".format(sender))
@@ -203,7 +190,6 @@ class Client:
                     base64.b64encode(self.shared_key).decode("utf8"))
                 self._save_config()
                 __log__.info("user {} sent you the room key".format(sender))
-                return
             except nacl.exceptions.CryptoError:
                 __log__.exception("error decrypting given room sent "
                                   "from user {}".format(sender))
@@ -258,19 +244,20 @@ class Client:
                 enc = data[nacl.public.Box.NONCE_SIZE:]
                 msg = self.boxes[sender].decrypt(enc, nonce)
                 __log__.info("[{} => {}] {}".format(sender, self.name, msg))
-                return
             except nacl.exceptions.CryptoError:
                 __log__.exception("[{} => {}] (WARNING: unable to decrypt. "
                                   "One of you may have changed keys or might "
                                   "be an imposter)".format(sender, self.name))
 
     def send_packet(self, packet: bytes) -> int:
+        """Send a packet to the server"""
         sent_bytes = 0
         while sent_bytes < len(packet):
             sent_bytes += self.sock.send(packet[sent_bytes:])
         return sent_bytes
 
     def get_packet(self) -> Optional[Response]:
+        """Receive a packet from the server"""
         r, w, e = select.select([self.sock], [], [], 0.125)
         for sock in r:
             if sock == self.sock:
