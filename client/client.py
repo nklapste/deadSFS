@@ -173,6 +173,7 @@ class Client:
                 self._receive_send_public_id_key(resp.name, resp.data)
 
     def _receive_server_notice(self, data: bytes):
+        """Handle receiving a plain text message from the server"""
         __log__.info("[server notice] {}".format(data))
 
     def _receive_send_shared_fs_key(self, sender: str, data: bytes):
