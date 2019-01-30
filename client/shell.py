@@ -24,11 +24,10 @@ def connected(f):
     def wrapper(*args):
         if args[0].client.connected:
             return f(*args)
-        else:
-            __log__.error(
-                "you must be connected to a deadchat server to "
-                "use this function"
-            )
+        __log__.error(
+            "you must be connected to a deadchat server to "
+            "use this function"
+        )
 
     return wrapper
 
@@ -41,11 +40,10 @@ def ftp_connected(f):
     def wrapper(*args):
         if args[0].ftp_client.sock:
             return f(*args)
-        else:
-            __log__.error(
-                "you must be connected to a deadchat ftp server to "
-                "use this function"
-            )
+        __log__.error(
+            "you must be connected to a deadchat ftp server to "
+            "use this function"
+        )
 
     return wrapper
 
@@ -64,6 +62,8 @@ class DeadChatShell(cmd.Cmd):
         self.ftp_client = EncryptedFTPClient(client.secretbox)
 
     def print_all_packets(self):
+        """Poll for incoming packets from the deadchat server and
+        handle/print them"""
         if self.client.sock:
             while True:
                 packet = self.client.get_packet()
@@ -73,19 +73,30 @@ class DeadChatShell(cmd.Cmd):
                     break
 
     def precmd(self, line):
+        """Just before a command is executed poll for incoming packets from the
+        deadchat server and handle/print them"""
         self.print_all_packets()
         return super().precmd(line)
 
     def postcmd(self, stop, line):
+        """After a command is executed poll for incoming packets from the
+        deadchat server and handle/print them"""
         self.print_all_packets()
         return super().postcmd(stop, line)
 
     def postloop(self):
+        """Close the connections to the deadchat server and FTP server after
+        the command loop closes"""
         if self.client.connected:
             self.client.close()
+        self.ftp_client.close()
 
     def do_exit(self, arg):
-        """exit out of the deadchat client shell"""
+        """Exit out of the deadchat client shell
+
+        Close connections from the both the deadchat server and FTP server
+        if they exist.
+        """
         __log__.info("exiting deadchat client shell")
         if self.client.connected:
             self.client.close()
@@ -100,7 +111,6 @@ class DeadChatShell(cmd.Cmd):
         if not self.client.name:
             __log__.error("Missing name, set using `create_id_key`")
             return
-        # TODO: argument argparsing
         host, port = arg.split(" ", 1)
         self.client.connect(host, int(port))
         self.client.send_packet(Command.ident(self.client.name))
