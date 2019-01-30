@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """command shell for the deadchat client"""
+
 import base64
 import cmd
 import getpass
