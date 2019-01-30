@@ -160,9 +160,9 @@ class DeadChatShell(cmd.Cmd):
         """Encrypt a string for usage in the FTP server using the shared room
         key obtained from the deadchat client"""
         import hashlib
-        h = hashlib.new("sha256")
-        h.update(string.encode("utf-8"))
-        hash = h.hexdigest()
+        sha = hashlib.new("sha256")
+        sha.update(string.encode("utf-8"))
+        hash = sha.hexdigest()
         base_content = "{}{}".format(hash, string)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         enc_string = self.client.secretbox.encrypt(base_content.encode('utf-8'), nonce)
@@ -180,28 +180,34 @@ class DeadChatShell(cmd.Cmd):
             given_hash = base_content[0:64].decode("utf-8")
             string = base_content[64:]
             # validate
-            h = hashlib.new("sha256")
-            h.update(string.decode("utf8").encode("utf-8"))
-            computed_hash = h.hexdigest()
+            sha = hashlib.new("sha256")
+            sha.update(string.decode("utf8").encode("utf-8"))
+            computed_hash = sha.hexdigest()
             if computed_hash == given_hash:
                 __log__.info("decrypted FTP message: {}".format(string))
                 return string.decode("utf-8")
             else:
-                __log__.error("checksum error given hash:{} computed hash: {}".format(given_hash, computed_hash))
-                return safe_enc_string
-        except nacl.exceptions.ValueError:
-            __log__.exception("failed to decrypt FTP message: {}".format(safe_enc_string))
-            return safe_enc_string
+                __log__.error(
+                    "checksum error given hash:{} computed hash: {}".format(
+                        given_hash, computed_hash))
+        except Exception:
+            __log__.exception(
+                "failed to decrypt FTP message: {}".format(safe_enc_string))
+        __log__.warning("detected unauthorized modification of "
+                        "remote filesystem")
+        return safe_enc_string
 
-    def get_pwd_encrypted_filename(self, filename: str):
+    def get_pwd_encrypted_path(self, path: str):
         enc_filenames = self.ftp.nlst()
         for enc_filename in enc_filenames:
             dec_filename = self.ftp_decrypt(enc_filename)
-            if filename == dec_filename:
-                __log__.info("found match for name: {} -> {}".format(filename, enc_filename))
+            if path == dec_filename:
+                __log__.info("found match for name: {} -> {}".format(
+                    path, enc_filename))
                 return enc_filename
         else:
-            raise FileNotFoundError("given directory does not exist within PWD")
+            raise FileNotFoundError(
+                "path: {} does not exist within PWD".format(path))
 
     def do_list_dir(self, arg):
         """List the contents of the current working directory of the
@@ -219,18 +225,18 @@ class DeadChatShell(cmd.Cmd):
         print(self.ftp.mkd(self.ftp_encrypt(arg)))
 
     def do_delete_dir(self, arg):
-        print(self.ftp.rmd(self.get_pwd_encrypted_filename(arg)))
+        print(self.ftp.rmd(self.get_pwd_encrypted_path(arg)))
 
     def do_change_dir(self, arg):
         """Change the current working directory of the remote filesystem"""
         if arg == "..":  # TODO: more elegant solution
             print(self.ftp.cwd(arg))
         else:
-            print(self.ftp.cwd(self.get_pwd_encrypted_filename(arg)))
+            print(self.ftp.cwd(self.get_pwd_encrypted_path(arg)))
 
     def do_write_file(self, arg):
         try:
-            enc_filename = self.get_pwd_encrypted_filename(arg)
+            enc_filename = self.get_pwd_encrypted_path(arg)
         except FileNotFoundError:
             enc_filename = self.ftp_encrypt(arg)
         cmd = "STOR {}".format(enc_filename)
@@ -240,13 +246,11 @@ class DeadChatShell(cmd.Cmd):
             print(self.ftp.storbinary(cmd, buf))
 
     def do_read_file(self, arg):
-        enc_filename = self.get_pwd_encrypted_filename(arg)
+        enc_filename = self.get_pwd_encrypted_path(arg)
         cmd = "RETR {}".format(enc_filename)
-        print(cmd)
         f = open("tempcrypt", "w")
 
         def callback(data: bytes):
-            print(data)
             f.write(data.decode("utf-8"))
         self.ftp.retrbinary(cmd, callback)
         f.close()
@@ -257,6 +261,4 @@ class DeadChatShell(cmd.Cmd):
             f.write(content)
 
     def do_delete_file(self, arg):
-        print(self.ftp.delete(self.get_pwd_encrypted_filename(arg)))
-
-
+        print(self.ftp.delete(self.get_pwd_encrypted_path(arg)))
