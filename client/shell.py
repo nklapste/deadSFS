@@ -3,11 +3,8 @@
 
 """command shell for the deadchat client"""
 
-import base64
 import cmd
 import getpass
-import hashlib
-from ftplib import FTP
 from logging import getLogger
 
 import nacl
@@ -17,6 +14,7 @@ import nacl.secret
 import nacl.utils
 
 from client.client import Client
+from client.ftp_client import EncryptedFTPClient
 from client.packet import Command
 
 __log__ = getLogger(__name__)
@@ -66,7 +64,7 @@ class DeadChatShell(cmd.Cmd):
         super().__init__()
 
         self.client = client
-        self.ftp = FTP()
+        self.ftp_client = EncryptedFTPClient(client.secretbox)
 
     def print_all_packets(self):
         if self.client.sock:
@@ -95,7 +93,7 @@ class DeadChatShell(cmd.Cmd):
         __log__.info("exiting deadchat client shell")
         if self.client.connected:
             self.client.close()
-        self.ftp.close()
+        self.ftp_client.close()
         return True
 
     def do_connect(self, arg):
@@ -161,131 +159,49 @@ class DeadChatShell(cmd.Cmd):
     ###############################
 
     def do_ftp_connect(self, arg):
-        """Connect to the remote FTP server"""
+        """Connect and login into the remote FTP server"""
         host, port = arg.split()
-        print(self.ftp.connect(host, int(port)))
-
-    @ftp_connected
-    def do_ftp_login(self, arg):
-        """Login to the remote FTP server"""
-        print(self.ftp.login(user=input("username: "), passwd=getpass.getpass()))
-        self.ftp.set_pasv(True)
+        print(self.ftp_client.connect(host, int(port)))
+        print(self.ftp_client.login(user=input("username: "), passwd=getpass.getpass()))
+        self.ftp_client.set_pasv(True)
 
     def do_ftp_disconnect(self, arg):
         """Disconnect from the remote FTP server"""
-        print(self.ftp.quit())
-
-    def ftp_encrypt(self, string: str) -> str:
-        """Encrypt a string for usage in the FTP server using the shared room
-        key obtained from the deadchat client"""
-        import hashlib
-        sha = hashlib.new("sha256")
-        sha.update(string.encode("utf-8"))
-        hash = sha.hexdigest()
-        base_content = "{}{}".format(hash, string)
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc_string = self.client.secretbox.encrypt(base_content.encode('utf-8'), nonce)
-        safe_enc_string = base64.urlsafe_b64encode(enc_string).decode("utf-8")
-        return safe_enc_string.strip()
-
-    def ftp_decrypt(self, safe_enc_string: str) -> str:
-        """Decrypt a string form the FTP server using the shared room
-        key obtained from the deadchat client"""
-        try:
-            enc_string = base64.urlsafe_b64decode(safe_enc_string)
-            nonce = enc_string[0:nacl.secret.SecretBox.NONCE_SIZE]
-            enc = enc_string[nacl.secret.SecretBox.NONCE_SIZE:]
-            base_content = self.client.secretbox.decrypt(enc, nonce)
-            given_hash = base_content[0:64].decode("utf-8")
-            string = base_content[64:]
-            # validate
-            sha = hashlib.new("sha256")
-            sha.update(string.decode("utf8").encode("utf-8"))
-            computed_hash = sha.hexdigest()
-            if computed_hash == given_hash:
-                __log__.info("decrypted FTP message: {}".format(string))
-                return string.decode("utf-8")
-            else:
-                __log__.error(
-                    "checksum error given hash:{} computed hash: {}".format(
-                        given_hash, computed_hash))
-        except Exception:
-            __log__.exception(
-                "failed to decrypt FTP message: {}".format(safe_enc_string))
-        __log__.warning("detected unauthorized modification of "
-                        "remote filesystem")
-        return safe_enc_string
+        print(self.ftp_client.quit())
 
     @ftp_connected
-    def get_pwd_encrypted_path(self, path: str):
-        enc_filenames = self.ftp.nlst()
-        for enc_filename in enc_filenames:
-            dec_filename = self.ftp_decrypt(enc_filename)
-            if path == dec_filename:
-                __log__.info("found match for name: {} -> {}".format(
-                    path, enc_filename))
-                return enc_filename
-        else:
-            raise FileNotFoundError(
-                "path: {} does not exist within PWD".format(path))
-
-    @ftp_connected
-    def do_list_dir(self, arg):
+    def do_ls(self, arg):
         """List the contents of the current working directory of the
         remote filesystem"""
-        if arg == "" or arg is None:
-            enc_dirs = self.ftp.nlst()
-        else:
-            enc_dirs = self.ftp.nlst(self.ftp_encrypt(arg))
-        for enc_dir in enc_dirs:
-            print(self.ftp_decrypt(enc_dir))
+        print(self.ftp_client.nlst(arg))
 
     @ftp_connected
-    def do_make_dir(self, arg):
+    def do_mkd(self, arg):
         """Make a directory with the specified name within the current working
         directory of the remote filesystem"""
-        print(self.ftp.mkd(self.ftp_encrypt(arg)))
+        print(self.ftp_client.mkd(arg))
 
     @ftp_connected
-    def do_delete_dir(self, arg):
-        print(self.ftp.rmd(self.get_pwd_encrypted_path(arg)))
+    def do_rmd(self, arg):
+        print(self.ftp_client.rmd(arg))
 
     @ftp_connected
-    def do_change_dir(self, arg):
+    def do_cwd(self, arg):
         """Change the current working directory of the remote filesystem"""
-        if arg == "..":  # TODO: more elegant solution
-            print(self.ftp.cwd(arg))
-        else:
-            print(self.ftp.cwd(self.get_pwd_encrypted_path(arg)))
+        print(self.ftp_client.cwd(arg))
 
     @ftp_connected
-    def do_write_file(self, arg):
-        try:
-            enc_filename = self.get_pwd_encrypted_path(arg)
-        except FileNotFoundError:
-            enc_filename = self.ftp_encrypt(arg)
-        cmd = "STOR {}".format(enc_filename)
+    def do_wf(self, arg):
         with open(arg, "r") as f:
-            import io
-            buf = io.BytesIO(self.ftp_encrypt(f.read()).encode("utf8"))
-            print(self.ftp.storbinary(cmd, buf))
+            print(self.ftp_client.storefile(arg, f.read()))
 
     @ftp_connected
-    def do_read_file(self, arg):
-        enc_filename = self.get_pwd_encrypted_path(arg)
-        cmd = "RETR {}".format(enc_filename)
-        f = open("tempcrypt", "w")
-
-        def callback(data: bytes):
-            f.write(data.decode("utf-8"))
-        self.ftp.retrbinary(cmd, callback)
-        f.close()
-        f = open("tempcrypt", "rb")
-        content = self.ftp_decrypt(f.read().decode("utf-8"))
+    def do_rf(self, arg):
+        content = self.ftp_client.readfile(arg)
         print("obtained {}'s content:\n{}".format(arg, content))
         with open(arg, "w") as f:
             f.write(content)
 
     @ftp_connected
-    def do_delete_file(self, arg):
-        print(self.ftp.delete(self.get_pwd_encrypted_path(arg)))
+    def do_rmf(self, arg):
+        print(self.ftp_client.delete(arg))
