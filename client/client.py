@@ -24,6 +24,9 @@ __log__ = getLogger(__name__)
 
 
 class Client:
+    """client that handles key generation and sharing to establish the
+    proper keys to use the :class:`client.ftp_client.EncryptedFTPClient`
+    effectively."""
 
     MAX_NAME_LENGTH = 65535
 
@@ -79,7 +82,9 @@ class Client:
         self.connected = False
         __log__.info("disconnected from server")
 
-    def create_room_key(self):
+    def create_shared_fs_key(self):
+        """Create a **private key** to be shared with users that are
+        **authorized** to access the remote filesystem"""
         self.shared_key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
         self.secretbox = nacl.secret.SecretBox(self.shared_key)
         if not self.config.has_section("room"):
@@ -89,14 +94,20 @@ class Client:
         self._save_config()
         __log__.info("created room key")
 
-    def send_room_key(self, target_user: str):
-        if self.check_public_key(target_user):
+    def send_shared_fs_key(self, target_user: str):
+        """Sent the **private key** for the remote filesystem to the
+        specified user"""
+        if self.check_public_id_key(target_user):
             nonce = nacl.utils.random(nacl.public.Box.NONCE_SIZE)
             enc = self.boxes[target_user].encrypt(self.shared_key, nonce)
             self.send_packet(Command.send_shared_fs_key(target_user, enc))
             __log__.info("sent room key to {}".format(target_user))
 
-    def check_public_key(self, target_user: str) -> bool:
+    def check_public_id_key(self, target_user: str) -> bool:
+        """Check if a public id key exists for the target user
+
+        This tests if the client "knows" this user.
+        """
         if target_user in self.boxes:
             return True
 
@@ -115,6 +126,7 @@ class Client:
         return False
 
     def create_id_key(self, name: str):
+        """Create a public and private id key for this client"""
         if len(name) > Client.MAX_NAME_LENGTH:
             __log__.error("user name {} is too long".format(name))
             return
@@ -139,10 +151,13 @@ class Client:
         self.config.set("id", "name", self.name.encode('utf8').decode("utf8"))
         self._save_config()
 
-    def exchange_id_key(self, target_user: str):
+    def exchange_public_id_key(self, target_user: str):
+        """Make a request for exchanging public id keys between this client
+        and the target user"""
         key = self.id_public_key.encode()
         self.send_packet(Command.request_public_id_key(target_user, key))
-        __log__.info("exchanging id keys with user {}".format(target_user))
+        __log__.info("exchanging public id keys with user {}".format(
+            target_user))
 
     def handle_response(self, resp: Response):
         if resp.type == ResponseCode.DISCONNECTED:
@@ -151,17 +166,18 @@ class Client:
             self._receive_server_notice(resp.data)
         elif resp.type == ResponseCode.MESSAGE:
             if resp.message_type == MessageCode.SEND_SHARED_FS_KEY:
-                self._receive_send_share_key(resp.name, resp.data)
+                self._receive_send_shared_fs_key(resp.name, resp.data)
             elif resp.message_type == MessageCode.REQUEST_PUBLIC_ID_KEY:
-                self._receive_request_public_key(resp.name, resp.data)
+                self._receive_request_public_id_key(resp.name, resp.data)
             elif resp.message_type == MessageCode.SEND_PUBLIC_ID_KEY:
-                self._receive_send_public_key(resp.name, resp.data)
+                self._receive_send_public_id_key(resp.name, resp.data)
 
     def _receive_server_notice(self, data: bytes):
         __log__.info("[server notice] {}".format(data))
 
-    def _receive_send_share_key(self, sender: str, data: bytes):
-        if self.check_public_key(sender):
+    def _receive_send_shared_fs_key(self, sender: str, data: bytes):
+        """Handle receiving the shared filesystem private key"""
+        if self.check_public_id_key(sender):
             try:
                 nonce = data[0:nacl.public.Box.NONCE_SIZE]
                 enc = data[nacl.public.Box.NONCE_SIZE:]
@@ -178,8 +194,8 @@ class Client:
                 __log__.exception("error decrypting given room sent "
                                   "from user {}".format(sender))
 
-    def _receive_request_public_key(self, sender: str, data: bytes):
-        """Handle a request for my public key"""
+    def _receive_request_public_id_key(self, sender: str, data: bytes):
+        """Handle a request for this client's public id key"""
         __log__.info("received id key request from user {}".format(sender))
 
         # store key from sender
@@ -196,11 +212,14 @@ class Client:
         if sender in self.boxes:
             self.boxes.pop(sender)
 
-    def _receive_send_public_key(self, sender: str, data: bytes):
-        """Handle receiving a requested public key from sender"""
+    # TODO: inspect security on this method
+    def _receive_send_public_id_key(self, sender: str, data: bytes):
+        """Handle receiving a public id key from the sender"""
         # save key to config file
         if not self.config.has_section("keys"):
             self.config.add_section("keys")
+        # TODO: check if the user is already present
+        # could be attack to override past accepted user
         self.config.set("keys", sender, base64.b64encode(data).decode("utf8"))
         self._save_config()
         __log__.info("id key exchange with user {} complete".format(sender))

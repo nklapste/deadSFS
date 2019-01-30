@@ -125,16 +125,16 @@ class DeadChatShell(cmd.Cmd):
     @connected
     def do_exchange_id_keys(self, arg):
         """Exchange identity keys with another deadchat user"""
-        self.client.exchange_id_key(arg)
+        self.client.exchange_public_id_key(arg)
 
     def do_create_fs_key(self, arg):
         """Create a secret key for a shared remote filesystem"""
-        self.client.create_room_key()
+        self.client.create_shared_fs_key()
 
     @connected
     def do_send_fs_key(self, arg):
         """Send a secret key for a shared remote filesystem securely"""
-        self.client.send_room_key(arg)
+        self.client.send_shared_fs_key(arg)
 
     ###############################
     # remote filesystem commands
