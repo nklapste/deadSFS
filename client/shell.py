@@ -5,6 +5,7 @@
 import base64
 import cmd
 import getpass
+import hashlib
 from ftplib import FTP
 from logging import getLogger
 
@@ -155,26 +156,16 @@ class DeadChatShell(cmd.Cmd):
         """Disconnect from the remote FTP server"""
         print(self.ftp.quit())
 
-    def ftp_encrypt_filename(self, string: str, content: str = None) -> str:
-        import hashlib
-        h = hashlib.new("sha256")
-        h.update(string.encode("uft-8"))
-        if content:
-            h.update(content.encode("utf-8"))
-        hash = h.hexdigest()
-        return self.ftp_encrypt("{}{}".format(hash, string))
-
-    def ftp_decrypt_filename(self, safe_enc_string: str):
-        raw = self.ftp_decrypt(safe_enc_string)
-        hash = raw[0:64]
-        filename = raw[64:]
-        return hash, filename
-
     def ftp_encrypt(self, string: str) -> str:
         """Encrypt a string for usage in the FTP server using the shared room
         key obtained from the deadchat client"""
+        import hashlib
+        h = hashlib.new("sha256")
+        h.update(string.encode("utf-8"))
+        hash = h.hexdigest()
+        base_content = "{}{}".format(hash, string)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        enc_string = self.client.secretbox.encrypt(string.encode('utf-8'), nonce)
+        enc_string = self.client.secretbox.encrypt(base_content.encode('utf-8'), nonce)
         safe_enc_string = base64.urlsafe_b64encode(enc_string).decode("utf-8")
         return safe_enc_string.strip()
 
@@ -185,9 +176,19 @@ class DeadChatShell(cmd.Cmd):
             enc_string = base64.urlsafe_b64decode(safe_enc_string)
             nonce = enc_string[0:nacl.secret.SecretBox.NONCE_SIZE]
             enc = enc_string[nacl.secret.SecretBox.NONCE_SIZE:]
-            string = self.client.secretbox.decrypt(enc, nonce)
-            __log__.info("decrypted FTP message: {}".format(string))
-            return string.decode("utf-8")
+            base_content = self.client.secretbox.decrypt(enc, nonce)
+            given_hash = base_content[0:64].decode("utf-8")
+            string = base_content[64:]
+            # validate
+            h = hashlib.new("sha256")
+            h.update(string.decode("utf8").encode("utf-8"))
+            computed_hash = h.hexdigest()
+            if computed_hash == given_hash:
+                __log__.info("decrypted FTP message: {}".format(string))
+                return string.decode("utf-8")
+            else:
+                __log__.error("checksum error given hash:{} computed hash: {}".format(given_hash, computed_hash))
+                return safe_enc_string
         except nacl.exceptions.ValueError:
             __log__.exception("failed to decrypt FTP message: {}".format(safe_enc_string))
             return safe_enc_string
@@ -201,7 +202,6 @@ class DeadChatShell(cmd.Cmd):
                 return enc_filename
         else:
             raise FileNotFoundError("given directory does not exist within PWD")
-
 
     def do_list_dir(self, arg):
         """List the contents of the current working directory of the
@@ -252,7 +252,7 @@ class DeadChatShell(cmd.Cmd):
         f.close()
         f = open("tempcrypt", "rb")
         content = self.ftp_decrypt(f.read().decode("utf-8"))
-        print("obtained {}'s content: {}".format(arg, content))
+        print("obtained {}'s content:\n{}".format(arg, content))
         with open(arg, "w") as f:
             f.write(content)
 
