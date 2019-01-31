@@ -47,7 +47,7 @@ command:
 This will create a random private key file at the path specified
 by ``output``.
 
-deadSFS shell
+deadSFS-shell
 -------------
 
 After installing deadSFS, its shell can be started by the following console
@@ -55,7 +55,7 @@ command:
 
 .. code-block:: bash
 
-    deadSFS <keyfile>
+    deadSFS-shell <keyfile>
 
 
 To get additional usage help on starting the deadSFS shell run the following
@@ -63,4 +63,4 @@ console command:
 
 .. code-block:: bash
 
-    deadSFS --help
+    deadSFS-shell --help
