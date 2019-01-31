@@ -62,6 +62,7 @@ class DeadSFSShell(cmd.Cmd):
                                     passwd=getpass.getpass()))
         self.ftp_client.set_pasv(True)
 
+    @ftp_connected
     def do_ftp_disconnect(self, arg):
         """Disconnect from the remote FTP server"""
         print(self.ftp_client.quit())
