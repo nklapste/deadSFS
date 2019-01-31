@@ -70,7 +70,6 @@ def get_parser() -> argparse.ArgumentParser:
         description="Start the deadSFS shell",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-
     parser.add_argument("key",
                         help="path to the private key file for encrypting "
                              "contents to be sent to the remote filesystem")
