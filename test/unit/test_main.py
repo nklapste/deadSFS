@@ -28,3 +28,9 @@ def test_get_parser():
 )
 def test_log_level(log_level_string, expected):
     assert log_level(log_level_string) == expected
+
+
+def test_log_level_invalid():
+    with pytest.raises(argparse.ArgumentTypeError):
+        log_level("nonsuch")
+
