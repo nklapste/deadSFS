@@ -85,6 +85,7 @@ setup(
     entry_points={
         "console_scripts": [
             "deadSFS = dead_sfs.__main__:main",
+            "deadSFS-keygen = dead_sfs.keygen:main"
         ],
     },
     cmdclass={"test": PyTest, "lint": Pylint},
