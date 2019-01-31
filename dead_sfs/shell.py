@@ -8,7 +8,7 @@ import getpass
 from functools import wraps
 from logging import getLogger
 
-from dead_sfs.ftp_client import EncryptedFTPClient
+from dead_sfs.ftp_client import EncryptedFTPClient, EncryptedFTPTLSClient
 
 __log__ = getLogger(__name__)
 
@@ -35,11 +35,14 @@ class DeadSFSShell(cmd.Cmd):
     intro = "Welcome to deadSFS shell. Type help or ? to list commands"
     prompt = "deadSFS>"
 
-    def __init__(self, key: bytes):
+    def __init__(self, key: bytes, tls: bool = False):
         """Initialize the deadSFS shell"""
         super().__init__()
-        self.ftp_client = EncryptedFTPClient(key)
-    
+        if tls:
+            self.ftp_client = EncryptedFTPTLSClient(key)
+        else:
+            self.ftp_client = EncryptedFTPClient(key)
+
     def do_exit(self, _):
         """Exit out of the deadSFS shell
 
@@ -57,6 +60,8 @@ class DeadSFSShell(cmd.Cmd):
         print(self.ftp_client.login(user=input("username: "),
                                     passwd=getpass.getpass()))
         self.ftp_client.set_pasv(True)
+        if isinstance(self.ftp_client, EncryptedFTPTLSClient):
+            self.ftp_client.prot_p()
 
     @ftp_connected
     def do_ftp_disconnect(self, _):

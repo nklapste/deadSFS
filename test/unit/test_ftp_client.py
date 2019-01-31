@@ -5,7 +5,7 @@
 
 import base64
 import io
-from ftplib import FTP
+from ftplib import FTP, FTP_TLS
 from unittest.mock import patch
 
 import nacl
@@ -14,7 +14,7 @@ import nacl.secret
 import nacl.utils
 import pytest
 
-from dead_sfs.ftp_client import EncryptedFTPClient
+from dead_sfs.ftp_client import EncryptedFTPClient, EncryptedFTPTLSClient
 
 
 @pytest.fixture(scope='session')
@@ -22,11 +22,22 @@ def secret_key():
     return nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
 
 
-def test_construction_file(secret_key):
+def test_enc_ftp_construction(secret_key):
     ftp_client = EncryptedFTPClient(secret_key)
     assert ftp_client
     assert isinstance(ftp_client, EncryptedFTPClient)
     assert isinstance(ftp_client, FTP)
+    assert ftp_client.secretbox
+    assert isinstance(ftp_client.secretbox, nacl.secret.SecretBox)
+
+
+def test_enc_ftp_tls_construction(secret_key):
+    ftp_client = EncryptedFTPTLSClient(secret_key)
+    assert ftp_client
+    assert isinstance(ftp_client, EncryptedFTPClient)
+    assert isinstance(ftp_client, EncryptedFTPTLSClient)
+    assert isinstance(ftp_client, FTP)
+    assert isinstance(ftp_client, FTP_TLS)
     assert ftp_client.secretbox
     assert isinstance(ftp_client.secretbox, nacl.secret.SecretBox)
 

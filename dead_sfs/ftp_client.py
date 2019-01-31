@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""FTP client that wraps all sent/given files with an encryption"""
+"""FTP and FTP_TLS clients that wraps all sent files with encryption"""
 
 import base64
 import binascii
-from ftplib import FTP
+from ftplib import FTP, FTP_TLS
 from io import BytesIO
 from logging import getLogger
 
@@ -137,3 +137,8 @@ class EncryptedFTPClient(FTP):
                 self.get_pwd_encrypted_path(filename)
             )
         )
+
+
+class EncryptedFTPTLSClient(EncryptedFTPClient, FTP_TLS):
+    """"Subclass of :class:`EncryptedFTPClient` that supports
+    FTP TLS connections"""
