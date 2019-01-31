@@ -48,7 +48,18 @@ class EncryptedFTPClient(FTP):
                 "with FTP message: {}".format(safe_enc_string))
             raise
 
+    def path_exists(self, path: str):
+        """Check whether a decrypted path exists within the encrypted
+        filesystem"""
+        try:
+            self.get_pwd_encrypted_path(path)
+            return True
+        except FileNotFoundError:
+            return False
+
     def get_pwd_encrypted_path(self, path: str):
+        """Attempt to match a decrypted path with a
+        encrypted filesystem path"""
         for enc_filename in super().nlst():
             dec_filename = self.ftp_decrypt(enc_filename)
             if path == dec_filename:
@@ -58,6 +69,7 @@ class EncryptedFTPClient(FTP):
         raise FileNotFoundError("path: {} does not exist in PWD".format(path))
 
     def nlst(self, dirname: str = None, *args):
+        # TODO: some better solution to deal with relative paths
         if dirname == "" or dirname == "." or dirname is None:
             enc_dirs = super().nlst(*args)
         else:
@@ -65,13 +77,10 @@ class EncryptedFTPClient(FTP):
         return list(map(self.ftp_decrypt, enc_dirs))
 
     def mkd(self, dirname: str):
-        try:
-            self.get_pwd_encrypted_path(dirname)
-        except FileNotFoundError:
-            return super().mkd(self.ftp_encrypt(dirname))
-        else:
+        if self.path_exists(dirname):
             raise FileExistsError(
-                "directory: {} already exists".format(dirname))
+                "cannot create directory ‘{}’: File exists".format(dirname))
+        return super().mkd(self.ftp_encrypt(dirname))
 
     def rmd(self, dirname: str):
         return super().rmd(self.get_pwd_encrypted_path(dirname))
@@ -85,9 +94,9 @@ class EncryptedFTPClient(FTP):
         return super().delete(self.get_pwd_encrypted_path(filename))
 
     def storefile(self, filename: str, content: str):
-        try:
+        if self.path_exists(filename):
             enc_filename = self.get_pwd_encrypted_path(filename)
-        except FileNotFoundError:
+        else:
             enc_filename = self.ftp_encrypt(filename)
         cmd = "STOR {}".format(enc_filename)
 
@@ -106,3 +115,18 @@ class EncryptedFTPClient(FTP):
         buf.seek(0)
         content = self.ftp_decrypt(buf.read().decode("utf-8"))
         return content
+
+    def rename(self, fromname: str, toname: str):
+        if self.path_exists(fromname):
+            if self.path_exists(toname):
+                raise FileExistsError(
+                    "cannot rename file ‘{}’ to ‘{}’: File exists".format(
+                        fromname, toname))
+            super().rename(self.get_pwd_encrypted_path(fromname), self.ftp_encrypt(toname))
+        else:
+            raise FileNotFoundError(
+                "cannot rename file ‘{}’: File does not exist".format(
+                    fromname))
+
+    def size(self, filename: str):
+        return super().size(self.get_pwd_encrypted_path(filename))

@@ -220,7 +220,7 @@ def test_ftp_storefile_exists(mock_ftp_storbinary, secretbox):
     with patch.object(FTP, "nlst",
                       return_value=[return_value]) as mock_ftp_nlst:
         ftp_client.storefile('test_file', "test_content")
-    mock_ftp_nlst.assert_called_once()
+    mock_ftp_nlst.assert_called()
     mock_ftp_storbinary.assert_called_once()
     assert mock_ftp_storbinary.call_args[0][0] != "test_file"
     assert ftp_client.ftp_decrypt(mock_ftp_storbinary.call_args[0][0][5:]) == \
@@ -259,3 +259,67 @@ def test_ftp_readfile(secretbox):
                     mock_retrbinary.call_args[0][0][5:]) == \
                        'test_file'
                 mock_ftp_nlst.assert_called_once()
+
+
+@patch("ftplib.FTP.rename")
+def test_rename_nonsuch(mock_ftp_rename, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
+        with pytest.raises(FileNotFoundError):
+            ftp_client.rename("test_file_1", "test_file_2")
+        mock_ftp_rename.assert_not_called()
+        mock_ftp_nlst.assert_called()
+
+
+@patch("ftplib.FTP.rename")
+def test_rename_collision(mock_ftp_rename, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    return_value_1 = ftp_client.ftp_encrypt("test_file_1")
+    return_value_2 = ftp_client.ftp_encrypt("test_file_2")
+    with patch.object(FTP, "nlst", return_value=[return_value_1, return_value_2]) as mock_ftp_nlst:
+        with pytest.raises(FileExistsError):
+            ftp_client.rename("test_file_1", "test_file_2")
+        mock_ftp_rename.assert_not_called()
+        mock_ftp_nlst.assert_called()
+
+
+@patch("ftplib.FTP.rename")
+def test_rename(mock_ftp_rename, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    return_value_1 = ftp_client.ftp_encrypt("test_file_1")
+    with patch.object(FTP, "nlst", return_value=[return_value_1]) as mock_ftp_nlst:
+        ftp_client.rename("test_file_1", "test_file_2")
+        mock_ftp_rename.assert_called_once()
+        assert "test_file_1" not in mock_ftp_rename.call_args[0][0]
+        assert ftp_client.ftp_decrypt(
+            mock_ftp_rename.call_args[0][0]) == \
+               'test_file_1'
+        assert "test_file_2" not in mock_ftp_rename.call_args[0][0]
+        assert ftp_client.ftp_decrypt(
+            mock_ftp_rename.call_args[0][1]) == \
+               'test_file_2'
+        mock_ftp_nlst.assert_called()
+
+
+@patch("ftplib.FTP.size")
+def test_size_nonsuch(mock_ftp_size, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    return_value = ftp_client.ftp_encrypt("test_file")
+    with patch.object(FTP, "nlst", return_value=[return_value]) as mock_ftp_nlst:
+        ftp_client.size("test_file")
+        mock_ftp_size.assert_called_once()
+        assert "test_file" not in mock_ftp_size.call_args[0][0]
+        assert ftp_client.ftp_decrypt(
+            mock_ftp_size.call_args[0][0]) == \
+               'test_file'
+        mock_ftp_nlst.assert_called_once()
+
+
+@patch("ftplib.FTP.size")
+def test_size_nonsuch(mock_ftp_size, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
+        with pytest.raises(FileNotFoundError):
+            ftp_client.size("test_file")
+        mock_ftp_size.assert_not_called()
+        mock_ftp_nlst.assert_called_once()
