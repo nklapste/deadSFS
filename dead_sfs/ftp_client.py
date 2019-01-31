@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""A FTP client that wraps all sent/given files with an encryption"""
+"""FTP client that wraps all sent/given files with an encryption"""
 
 import base64
 import binascii
