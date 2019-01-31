@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""argparse and main entrypoint script for the deadchat client"""
+"""argparse and main entrypoint script for deadSFS"""
 
 import argparse
 import logging
@@ -9,7 +9,7 @@ import os
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
-from client.shell import DeadChatShell
+from dead_sfs.shell import DeadSFSShell
 
 LOG_LEVEL_STRINGS = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]
 
@@ -65,30 +65,28 @@ def init_logging(args, log_file_path):
 
 
 def get_parser() -> argparse.ArgumentParser:
-    """Create and return the argparser for the deadchat client"""
+    """Create and return the argparser for deadSFS"""
     parser = argparse.ArgumentParser(
-        description="Start the deadchat client",
+        description="Start the deadSFS shell",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("-c", "--config-path", default="deadchat_client.ini",
-                        dest="config_path",
-                        help="Path to read/write the user config file")
-    parser.add_argument("-ca", "--ca-certs", default=None, dest="ca_certs",
-                        help="If specified enable using ca certificate "
-                             "validation using certificates at the specified "
-                             "path")
+    parser.add_argument("-k", "--key", required=True,
+                        help="path to the private key file for encrypting "
+                             "contents to be sent to the remote filesystem")
     add_log_parser(parser)
 
     return parser
 
 
 def main(argv=sys.argv[1:]) -> int:
-    """main entry point for the deadchat client"""
+    """main entry point for deadSFS"""
     parser = get_parser()
     args = parser.parse_args(argv)
-    init_logging(args, "deadchat_client.log")
-    DeadChatShell(args.config_path, args.ca_certs).cmdloop()
+    init_logging(args, "deadSFS_client.log")
+    with open(args.key, "rb") as f:
+        key = f.read()
+    DeadSFSShell(key).cmdloop()
     return 0
 
 

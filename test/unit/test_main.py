@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""pytests for :mod:`client.__main__`"""
+"""pytests for :mod:`dead_sfs.__main__`"""
 
 import argparse
 import logging
 
 import pytest
 
-from client.__main__ import get_parser, log_level
+from dead_sfs.__main__ import get_parser, log_level
 
 
 def test_get_parser():

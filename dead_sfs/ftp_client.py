@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""FTP client that wraps all sent/given files with an encryption"""
+"""A FTP client that wraps all sent/given files with an encryption"""
 
 import base64
 import binascii
@@ -20,20 +20,18 @@ class EncryptedFTPClient(FTP):
     """Simple wrapper class of :class:`ftplib.FTP` the encrypts both a
     file's name and contents before sending it to the remote FTP server"""
 
-    def __init__(self, secretbox: nacl.secret.SecretBox, **kwargs):
-        self.secretbox = secretbox
+    def __init__(self, key: bytes, **kwargs):
+        self.secretbox = nacl.secret.SecretBox(key)
         FTP.__init__(self, **kwargs)
 
     def ftp_encrypt(self, string: str) -> str:
-        """Encrypt a string for usage in the FTP server using the shared room
-        key obtained from the deadchat client"""
+        """Encrypt a string to send to the FTP server"""
         enc_string = self.secretbox.encrypt(string.encode('utf-8'))
         safe_enc_string = base64.urlsafe_b64encode(enc_string).decode("utf-8")
         return safe_enc_string.strip()
 
     def ftp_decrypt(self, safe_enc_string: str) -> str:
-        """Decrypt a string form the FTP server using the shared room
-        key obtained from the deadchat client"""
+        """Decrypt a string from the FTP server"""
         try:
             enc_string = base64.urlsafe_b64decode(safe_enc_string)
             nonce = enc_string[0:nacl.secret.SecretBox.NONCE_SIZE]

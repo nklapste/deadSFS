@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""setup.py for the deadchat client"""
+"""setup.py for the deadSFS"""
 
 import codecs
 import os
@@ -21,7 +21,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find a valid version")
 
 
-VERSION = find_version("client", "__init__.py")
+VERSION = find_version("dead_sfs", "__init__.py")
 
 
 class Pylint(test):
@@ -29,7 +29,7 @@ class Pylint(test):
 
     def initialize_options(self):
         test.initialize_options(self)
-        self.pylint_args = "client --persistent=y --rcfile=.pylintrc --output-format=colorized"
+        self.pylint_args = "dead_sfs --persistent=y --rcfile=.pylintrc --output-format=colorized"
 
     def run_tests(self):
         import shlex
@@ -43,7 +43,7 @@ class PyTest(test):
 
     def initialize_options(self):
         test.initialize_options(self)
-        self.pytest_args = "-v --cov={}".format("client")
+        self.pytest_args = "-v --cov={}".format("dead_sfs")
 
     def run_tests(self):
         import shlex
@@ -54,18 +54,18 @@ class PyTest(test):
 
 
 def readme():
-    with open("README.md", encoding="utf-8") as f:
+    with open("README.rst", encoding="utf-8") as f:
         return f.read()
 
 
 setup(
-    name="deadchat-client",
+    name="deadSFS",
     version=VERSION,
     description="",
     long_description=readme(),
     author="Nathan Klapstein",
     author_email="nklapste@ualberta.ca",
-    url="https://github.com/nklapste/deadchat",
+    url="https://github.com/nklapste/deadSFS",
     license="MIT",
     classifiers=[
         "License :: OSI Approved :: MIT License",
@@ -84,7 +84,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "client = client.__main__:main",
+            "deadSFS = dead_sfs.__main__:main",
         ],
     },
     cmdclass={"test": PyTest, "lint": Pylint},
