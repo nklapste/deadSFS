@@ -5,6 +5,7 @@
 
 import base64
 import binascii
+import os
 from ftplib import FTP, FTP_TLS
 from io import BytesIO
 from logging import getLogger
@@ -83,10 +84,10 @@ class EncryptedFTPClient(FTP):
         failed_files = []
         for dir in enc_dirs:
             try:
-                decrypted_files.append(self.ftp_decrypt(dir))
+                decrypted_files.append(self.ftp_decrypt(os.path.split(dir)[-1]))
             except (nacl.exceptions.CryptoError, IndexError,
                     binascii.Error, ValueError):
-                failed_files.append(dir)
+                failed_files.append(os.path.split(dir)[-1])
         return decrypted_files, failed_files
 
     def nlst(self, dirname: str, *args):
