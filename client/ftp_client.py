@@ -5,7 +5,6 @@
 
 import base64
 import binascii
-import hashlib
 from ftplib import FTP
 from io import BytesIO
 from logging import getLogger
@@ -106,6 +105,7 @@ class EncryptedFTPClient(FTP):
         enc_filename = self.get_pwd_encrypted_path(filename)
         cmd = "RETR {}".format(enc_filename)
         buf = BytesIO()
+
         def callback(data: bytes):
             buf.write(data)
 
