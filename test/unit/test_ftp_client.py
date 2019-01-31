@@ -22,14 +22,13 @@ def secret_key():
     return nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
 
 
-@patch('ftplib.FTP.__init__')
-def test_construction_file(mock_ftp_constructor, secret_key):
+def test_construction_file(secret_key):
     ftp_client = EncryptedFTPClient(secret_key)
     assert ftp_client
     assert isinstance(ftp_client, EncryptedFTPClient)
+    assert isinstance(ftp_client, FTP)
     assert ftp_client.secretbox
     assert isinstance(ftp_client.secretbox, nacl.secret.SecretBox)
-    mock_ftp_constructor.assert_called_once_with(ftp_client)
 
 
 @pytest.fixture(scope="session")

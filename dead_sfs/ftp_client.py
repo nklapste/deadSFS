@@ -22,7 +22,7 @@ class EncryptedFTPClient(FTP):
 
     def __init__(self, key: bytes, **kwargs):
         self.secretbox = nacl.secret.SecretBox(key)
-        FTP.__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
     def ftp_encrypt(self, string: str) -> str:
         """Encrypt a string to send to the FTP server"""
