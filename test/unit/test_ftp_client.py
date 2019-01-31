@@ -65,7 +65,7 @@ def test_ftp_decrypt(ftp_client):
 
 def test_ftp_decrypt_modified(secret_key):
     ftp_client = EncryptedFTPClient(secret_key)
-    enc = ftp_client.ftp_encrypt("nonsuch")
+    enc = ftp_client.ftp_encrypt("test_file")
 
     # tamper the encrypted files
     enc_raw = base64.urlsafe_b64decode(enc)
@@ -128,7 +128,7 @@ def test_rmd(mock_ftp_rmd, ftp_client):
 def test_rmd_nonsuch(mock_ftp_rmd, ftp_client):
     with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
         with pytest.raises(FileNotFoundError):
-            ftp_client.rmd("nonsuch")
+            ftp_client.rmd("test_file")
         mock_ftp_rmd.assert_not_called()
         mock_ftp_nlst.assert_called_once()
 
@@ -174,7 +174,7 @@ def test_delete_nonsuch(mock_ftp_delete, secret_key):
     ftp_client = EncryptedFTPClient(secret_key)
     with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
         with pytest.raises(FileNotFoundError):
-            ftp_client.delete("nonsuch")
+            ftp_client.delete("test_file")
         mock_ftp_delete.assert_not_called()
         mock_ftp_nlst.assert_called_once()
 
