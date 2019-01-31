@@ -22,7 +22,7 @@ def secret_key():
     return nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
 
 
-@patch('ftplib.FTP.__init__', autospec=True)
+@patch('ftplib.FTP.__init__')
 def test_construction_file(mock_ftp_constructor, secret_key):
     ftp_client = EncryptedFTPClient(secret_key)
     assert ftp_client
