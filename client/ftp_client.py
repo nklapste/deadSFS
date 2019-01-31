@@ -130,3 +130,11 @@ class EncryptedFTPClient(FTP):
 
     def size(self, filename: str):
         return super().size(self.get_pwd_encrypted_path(filename))
+
+    def chmod(self, chmod_permissions: str, filename: str):
+        super().sendcmd(
+            'SITE CHMOD {} {}'.format(
+                chmod_permissions,
+                self.get_pwd_encrypted_path(filename)
+            )
+        )

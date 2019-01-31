@@ -314,7 +314,6 @@ def test_size_nonsuch(mock_ftp_size, secretbox):
                'test_file'
         mock_ftp_nlst.assert_called_once()
 
-
 @patch("ftplib.FTP.size")
 def test_size_nonsuch(mock_ftp_size, secretbox):
     ftp_client = EncryptedFTPClient(secretbox)
@@ -322,4 +321,28 @@ def test_size_nonsuch(mock_ftp_size, secretbox):
         with pytest.raises(FileNotFoundError):
             ftp_client.size("test_file")
         mock_ftp_size.assert_not_called()
+        mock_ftp_nlst.assert_called_once()
+
+
+@patch("ftplib.FTP.sendcmd")
+def test_chmod(mock_ftp_sendcmd, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    return_value = ftp_client.ftp_encrypt("test_file")
+    with patch.object(FTP, "nlst", return_value=[return_value]) as mock_ftp_nlst:
+        ftp_client.chmod('644', "test_file")
+        mock_ftp_sendcmd.assert_called_once()
+        assert "test_file" not in mock_ftp_sendcmd.call_args[0][0]
+        assert ftp_client.ftp_decrypt(
+            mock_ftp_sendcmd.call_args[0][0][15:]) == \
+               'test_file'
+        mock_ftp_nlst.assert_called_once()
+
+
+@patch("ftplib.FTP.sendcmd")
+def test_chmod_nonsuch(mock_ftp_sendcmd, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
+        with pytest.raises(FileNotFoundError):
+            ftp_client.chmod("644", "test_file")
+        mock_ftp_sendcmd.assert_not_called()
         mock_ftp_nlst.assert_called_once()
