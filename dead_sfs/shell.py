@@ -39,10 +39,6 @@ class DeadSFSShell(cmd.Cmd):
         """Initialize the deadSFS shell"""
         super().__init__()
         self.ftp_client = EncryptedFTPClient(key)
-
-    ###############################
-    # remote filesystem commands
-    ###############################
     
     def do_exit(self, arg):
         """Exit out of the deadSFS shell
