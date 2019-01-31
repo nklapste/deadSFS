@@ -37,13 +37,12 @@ class EncryptedFTPClient(FTP):
             nonce = enc_string[0:nacl.secret.SecretBox.NONCE_SIZE]
             enc = enc_string[nacl.secret.SecretBox.NONCE_SIZE:]
             string = self.secretbox.decrypt(enc, nonce)
-            __log__.info("decrypted FTP message: {}".format(string))
             return string.decode("utf-8")
         except (nacl.exceptions.CryptoError, IndexError,
                 binascii.Error, ValueError):
-            __log__.exception(
+            __log__.critical(
                 "detected unauthorized modification of remote filesystem "
-                "with FTP message: {}".format(safe_enc_string))
+                "with FTP message: {}".format(safe_enc_string), exc_info=True)
             raise
 
     def path_exists(self, path: str):
@@ -61,10 +60,10 @@ class EncryptedFTPClient(FTP):
         for enc_filename in super().nlst():
             dec_filename = self.ftp_decrypt(enc_filename)
             if path == dec_filename:
-                __log__.info("found match for name: {} -> {}".format(
-                    path, enc_filename))
                 return enc_filename
-        raise FileNotFoundError("path: {} does not exist in PWD".format(path))
+        raise FileNotFoundError(
+            "cannot get encrypted path for ‘{}’: "
+            "File **likely** does not exist".format(path))
 
     def nlst(self, dirname: str = None, *args):
         # TODO: some better solution to deal with relative paths
@@ -77,14 +76,16 @@ class EncryptedFTPClient(FTP):
     def mkd(self, dirname: str):
         if self.path_exists(dirname):
             raise FileExistsError(
-                "cannot create directory ‘{}’: File exists".format(dirname))
+                "cannot create directory ‘{}’: "
+                "File exists".format(dirname))
         return super().mkd(self.ftp_encrypt(dirname))
 
     def rmd(self, dirname: str):
         return super().rmd(self.get_pwd_encrypted_path(dirname))
 
     def cwd(self, dirname: str):
-        if dirname == "." or dirname == ".." or dirname == "":  # TODO: more elegant solution
+        # TODO: more elegant solution
+        if dirname == "." or dirname == ".." or dirname == "":
             return super().cwd(dirname)
         return super().cwd(self.get_pwd_encrypted_path(dirname))
 
@@ -123,8 +124,8 @@ class EncryptedFTPClient(FTP):
             super().rename(self.get_pwd_encrypted_path(fromname), self.ftp_encrypt(toname))
         else:
             raise FileNotFoundError(
-                "cannot rename file ‘{}’: File does not exist".format(
-                    fromname))
+                "cannot rename file ‘{}’: "
+                "File does not exist".format(fromname))
 
     def size(self, filename: str):
         return super().size(self.get_pwd_encrypted_path(filename))
