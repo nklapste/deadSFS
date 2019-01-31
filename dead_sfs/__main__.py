@@ -71,7 +71,7 @@ def get_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("-k", "--key", required=True,
+    parser.add_argument("key",
                         help="path to the private key file for encrypting "
                              "contents to be sent to the remote filesystem")
     add_log_parser(parser)
