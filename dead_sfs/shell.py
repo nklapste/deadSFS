@@ -38,21 +38,20 @@ class DeadSFSShell(cmd2.Cmd):
 
     def __init__(self, key: bytes, tls: bool = False):
         """Initialize the deadSFS shell"""
+        self.allow_cli_args = False
         super().__init__()
         if tls:
             self.ftp_client = EncryptedFTPTLSClient(key)
         else:
             self.ftp_client = EncryptedFTPClient(key)
 
-    def do_exit(self, _):
+    def do_quit(self, _):
         """Exit out of the deadSFS shell
 
-        Close connections from the both the deadSFS server and FTP server
-        if they exist.
+        Close connections for the FTP server if they exist.
         """
-        __log__.info("exiting deadSFS shell")
         self.ftp_client.close()
-        return True
+        return super().do_quit(_)
 
     def do_connect(self, arg):
         """Connect and login into the remote FTP server"""
