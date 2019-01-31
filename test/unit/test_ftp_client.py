@@ -98,7 +98,7 @@ def test_cwd_valid_dir(mock_ftp_cwd, ftp_client):
         mock_ftp_nlst.assert_called_once()
         assert mock_ftp_cwd.call_args[0][0] != 'test_dir'
         assert ftp_client.ftp_decrypt(mock_ftp_cwd.call_args[0][0]) == \
-               'test_dir'
+            'test_dir'
 
 
 @patch("ftplib.FTP.rmd")
@@ -111,7 +111,7 @@ def test_rmd(mock_ftp_rmd, ftp_client):
         mock_ftp_nlst.assert_called_once()
         assert mock_ftp_rmd.call_args[0][0] != 'test_dir'
         assert ftp_client.ftp_decrypt(mock_ftp_rmd.call_args[0][0]) == \
-               'test_file'
+            'test_file'
 
 
 @patch("ftplib.FTP.rmd")
@@ -143,7 +143,7 @@ def test_mkd_nonsuch(mock_ftp_mkd, ftp_client):
         mock_ftp_nlst.assert_called_once()
         assert mock_ftp_mkd.call_args[0][0] != "test_dir"
         assert ftp_client.ftp_decrypt(mock_ftp_mkd.call_args[0][0]) == \
-               'test_dir'
+            'test_dir'
 
 
 @patch("ftplib.FTP.delete")
@@ -156,7 +156,7 @@ def test_delete(mock_ftp_delete, ftp_client):
         mock_ftp_nlst.assert_called_once()
         assert mock_ftp_delete.call_args[0][0] != "test_file"
         assert ftp_client.ftp_decrypt(mock_ftp_delete.call_args[0][0]) == \
-               'test_file'
+            'test_file'
 
 
 @patch("ftplib.FTP.delete")
@@ -177,7 +177,7 @@ def test_nlst_dir(ftp_client):
         mock_ftp_nlst.assert_called_once()
         assert mock_ftp_nlst.call_args[0][0] != "test_dir"
         assert ftp_client.ftp_decrypt(mock_ftp_nlst.call_args[0][0]) == \
-               'test_dir'
+            'test_dir'
 
 
 @pytest.mark.parametrize("directory", [".", "", None])
@@ -203,7 +203,7 @@ def test_ftp_storefile(mock_ftp_storbinary, ftp_client):
     mock_ftp_nlst.assert_called()
     assert mock_ftp_storbinary.call_args[0][0] != "test_file"
     assert ftp_client.ftp_decrypt(mock_ftp_storbinary.call_args[0][0][5:]) == \
-           'test_file'
+        'test_file'
     assert mock_ftp_storbinary.call_args[0][1] != "test_content"
     assert \
         ftp_client.ftp_decrypt(mock_ftp_storbinary.call_args[0][1].read()) == \
@@ -218,7 +218,7 @@ def test_ftp_storefile_nonsuch(mock_ftp_storbinary, ftp_client):
     mock_ftp_nlst.assert_called_once()
     assert mock_ftp_storbinary.call_args[0][0] != "test_file"
     assert ftp_client.ftp_decrypt(mock_ftp_storbinary.call_args[0][0][5:]) == \
-           'test_file'
+        'test_file'
     assert mock_ftp_storbinary.call_args[0][1] != "test_content"
     assert \
         ftp_client.ftp_decrypt(mock_ftp_storbinary.call_args[0][1].read()) == \
@@ -265,11 +265,11 @@ def test_rename(mock_ftp_rename, ftp_client):
         mock_ftp_rename.assert_called_once()
         mock_ftp_nlst.assert_called()
         assert "test_file_1" not in mock_ftp_rename.call_args[0][0]
-        assert ftp_client.ftp_decrypt( mock_ftp_rename.call_args[0][0]) == \
-               'test_file_1'
+        assert ftp_client.ftp_decrypt(mock_ftp_rename.call_args[0][0]) == \
+            'test_file_1'
         assert "test_file_2" not in mock_ftp_rename.call_args[0][1]
         assert ftp_client.ftp_decrypt(mock_ftp_rename.call_args[0][1]) == \
-               'test_file_2'
+            'test_file_2'
 
 
 @patch("ftplib.FTP.rename")
@@ -305,7 +305,7 @@ def test_size(mock_ftp_size, ftp_client):
         mock_ftp_nlst.assert_called_once()
         assert "test_file" not in mock_ftp_size.call_args[0][0]
         assert ftp_client.ftp_decrypt(mock_ftp_size.call_args[0][0]) == \
-               'test_file'
+            'test_file'
 
 
 @patch("ftplib.FTP.size")
