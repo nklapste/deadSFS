@@ -77,7 +77,7 @@ class EncryptedFTPClient(FTP):
         return super().rmd(self.get_pwd_encrypted_path(dirname))
 
     def cwd(self, dirname: str):
-        if dirname == "..":  # TODO: more elegant solution
+        if dirname == "." or dirname == ".." or dirname == "":  # TODO: more elegant solution
             return super().cwd(dirname)
         return super().cwd(self.get_pwd_encrypted_path(dirname))
 
