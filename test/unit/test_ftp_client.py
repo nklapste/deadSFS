@@ -30,31 +30,6 @@ def test_construction_file(mock_ftp_constructor, secretbox):
     mock_ftp_constructor.assert_called_with(ftp_client)
 
 
-@patch("ftplib.FTP.cwd")
-def test_cwd_backdir(mock_ftp_cwd, secretbox):
-    ftp_client = EncryptedFTPClient(secretbox)
-    ftp_client.cwd("..")
-    mock_ftp_cwd.assert_called_with("..")
-    ftp_client.cwd(".")
-    mock_ftp_cwd.assert_called_with(".")
-    ftp_client.cwd("")
-    mock_ftp_cwd.assert_called_with("")
-
-
-@patch("ftplib.FTP.cwd")
-def test_cwd_valid_dir(mock_ftp_cwd, secretbox):
-    ftp_client = EncryptedFTPClient(secretbox)
-    return_value = ftp_client.ftp_encrypt("test_dir")
-    with patch.object(FTP, "nlst",
-                      return_value=[return_value]) as mock_ftp_nlst:
-        ftp_client.cwd("test_dir")
-        mock_ftp_nlst.assert_called_once()
-        mock_ftp_cwd.assert_called_with(return_value)
-        assert mock_ftp_cwd.call_args[0][0] != 'test_dir'
-        assert ftp_client.ftp_decrypt(mock_ftp_cwd.call_args[0][0]) == \
-               'test_dir'
-
-
 def test_ftp_encrypt(secretbox):
     ftp_client = EncryptedFTPClient(secretbox)
     enc = ftp_client.ftp_encrypt("nonsuch")
@@ -82,6 +57,50 @@ def test_ftp_decrypt_modified(secretbox):
 
     with pytest.raises(nacl.exceptions.CryptoError):
         ftp_client.ftp_decrypt(bad_enc)
+
+
+def test_get_pwd_encrypted_path(secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    return_value = ftp_client.ftp_encrypt("test_file")
+    with patch.object(FTP, "nlst",
+                      return_value=[return_value]) as mock_ftp_nlst:
+        ftp_client.get_pwd_encrypted_path("test_file")
+        mock_ftp_nlst.assert_called_once()
+        mock_ftp_nlst.assert_called_with()
+
+
+def test_get_pwd_encrypted_path_nonsuch(secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
+        with pytest.raises(FileNotFoundError):
+            ftp_client.get_pwd_encrypted_path("test_dir")
+        mock_ftp_nlst.assert_called_once()
+        mock_ftp_nlst.assert_called_with()
+
+
+@patch("ftplib.FTP.cwd")
+def test_cwd_backdir(mock_ftp_cwd, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    ftp_client.cwd("..")
+    mock_ftp_cwd.assert_called_with("..")
+    ftp_client.cwd(".")
+    mock_ftp_cwd.assert_called_with(".")
+    ftp_client.cwd("")
+    mock_ftp_cwd.assert_called_with("")
+
+
+@patch("ftplib.FTP.cwd")
+def test_cwd_valid_dir(mock_ftp_cwd, secretbox):
+    ftp_client = EncryptedFTPClient(secretbox)
+    return_value = ftp_client.ftp_encrypt("test_dir")
+    with patch.object(FTP, "nlst",
+                      return_value=[return_value]) as mock_ftp_nlst:
+        ftp_client.cwd("test_dir")
+        mock_ftp_nlst.assert_called_once()
+        mock_ftp_cwd.assert_called_with(return_value)
+        assert mock_ftp_cwd.call_args[0][0] != 'test_dir'
+        assert ftp_client.ftp_decrypt(mock_ftp_cwd.call_args[0][0]) == \
+               'test_dir'
 
 
 @patch("ftplib.FTP.rmd")
@@ -211,7 +230,6 @@ def test_ftp_storefile_exists(mock_ftp_storbinary, secretbox):
 def test_ftp_readfile(secretbox):
     ftp_client = EncryptedFTPClient(secretbox)
     retrbinary_return_value = ftp_client.ftp_encrypt("test_content")
-    print(retrbinary_return_value)
 
     # mocking BytesIO can be a pain
     class MockBytesIO(io.BytesIO):
