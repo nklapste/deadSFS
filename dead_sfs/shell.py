@@ -15,7 +15,7 @@ __log__ = getLogger(__name__)
 
 def ftp_connected(f):
     """Annotation to check if that the command shell is connected to a
-    ftp server before attempting a ftp command in :class:`DeadSFSShell`"""
+    FTP server before attempting a FTP command in :class:`DeadSFSShell`"""
 
     @wraps(f)
     def wrapper(*args):
@@ -31,14 +31,13 @@ def ftp_connected(f):
 
 class DeadSFSShell(cmd.Cmd):
     """Main shell for deadSFS"""
-    intro = "Welcome to deadSFS shell. " \
-            "Type help or ? to list commands"
+
+    intro = "Welcome to deadSFS shell. Type help or ? to list commands"
     prompt = "deadSFS>"
 
     def __init__(self, key: bytes):
         """Initialize the deadSFS shell"""
         super().__init__()
-
         self.ftp_client = EncryptedFTPClient(key)
 
     def postloop(self):
