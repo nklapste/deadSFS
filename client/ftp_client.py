@@ -65,7 +65,13 @@ class EncryptedFTPClient(FTP):
         return list(map(self.ftp_decrypt, enc_dirs))
 
     def mkd(self, dirname: str):
-        return super().mkd(self.ftp_encrypt(dirname))
+        try:
+            self.get_pwd_encrypted_path(dirname)
+        except FileNotFoundError:
+            return super().mkd(self.ftp_encrypt(dirname))
+        else:
+            raise FileExistsError(
+                "directory: {} already exists".format(dirname))
 
     def rmd(self, dirname: str):
         return super().rmd(self.get_pwd_encrypted_path(dirname))
