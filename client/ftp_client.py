@@ -27,11 +27,7 @@ class EncryptedFTPClient(FTP):
     def ftp_encrypt(self, string: str) -> str:
         """Encrypt a string for usage in the FTP server using the shared room
         key obtained from the deadchat client"""
-        sha = hashlib.new("sha256")
-        sha.update(string.encode("utf-8"))
-        computed_hash = sha.hexdigest()
-        base_content = "{}{}".format(computed_hash, string)
-        enc_string = self.secretbox.encrypt(base_content.encode('utf-8'))
+        enc_string = self.secretbox.encrypt(string.encode('utf-8'))
         safe_enc_string = base64.urlsafe_b64encode(enc_string).decode("utf-8")
         return safe_enc_string.strip()
 
@@ -42,18 +38,9 @@ class EncryptedFTPClient(FTP):
             enc_string = base64.urlsafe_b64decode(safe_enc_string)
             nonce = enc_string[0:nacl.secret.SecretBox.NONCE_SIZE]
             enc = enc_string[nacl.secret.SecretBox.NONCE_SIZE:]
-            base_content = self.secretbox.decrypt(enc, nonce)
-            given_hash = base_content[0:64].decode("utf-8")
-            string = base_content[64:]
-            sha = hashlib.new("sha256")
-            sha.update(string.decode("utf8").encode("utf-8"))
-            computed_hash = sha.hexdigest()
-            if computed_hash == given_hash:
-                __log__.info("decrypted FTP message: {}".format(string))
-                return string.decode("utf-8")
-            raise ValueError(
-                "checksum error given hash:{} computed hash: {}".format(
-                    given_hash, computed_hash))
+            string = self.secretbox.decrypt(enc, nonce)
+            __log__.info("decrypted FTP message: {}".format(string))
+            return string.decode("utf-8")
         except (nacl.exceptions.CryptoError, IndexError,
                 binascii.Error, ValueError):
             __log__.exception(
