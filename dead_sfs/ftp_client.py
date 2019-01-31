@@ -59,20 +59,39 @@ class EncryptedFTPClient(FTP):
         """Attempt to match a decrypted path with a
         encrypted filesystem path"""
         for enc_filename in super().nlst():
-            dec_filename = self.ftp_decrypt(enc_filename)
+            try:
+                dec_filename = self.ftp_decrypt(enc_filename)
+            except (nacl.exceptions.CryptoError, IndexError,
+                    binascii.Error, ValueError):
+                continue
             if path == dec_filename:
                 return enc_filename
         raise FileNotFoundError(
             "cannot get encrypted path for ‘{}’: "
             "File **likely** does not exist".format(path))
 
-    def nlst(self, dirname: str = None, *args):
-        # TODO: some better solution to deal with relative paths
-        if dirname == "" or dirname == "." or dirname is None:
+    def shared_nlst(self, dirname: str = None, *args):
+        if not dirname or dirname in ["", "."]:
             enc_dirs = super().nlst(*args)
+        elif self.path_exists(dirname):
+            enc_dirs = super().nlst(self.get_pwd_encrypted_path(dirname))
+            # TODO will get full path including /
         else:
-            enc_dirs = super().nlst(self.ftp_encrypt(dirname), *args)
-        return list(map(self.ftp_decrypt, enc_dirs))
+            enc_dirs = super().nlst(dirname)
+
+        decrypted_files = []
+        failed_files = []
+        for dir in enc_dirs:
+            try:
+                decrypted_files.append(self.ftp_decrypt(dir))
+            except (nacl.exceptions.CryptoError, IndexError,
+                    binascii.Error, ValueError):
+                failed_files.append(dir)
+        return decrypted_files, failed_files
+
+    def nlst(self, dirname: str, *args):
+        decrypted_files, failed_files = self.shared_nlst(dirname, *args)
+        return decrypted_files
 
     def mkd(self, dirname: str):
         if self.path_exists(dirname):
