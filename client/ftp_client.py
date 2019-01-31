@@ -4,11 +4,13 @@
 """FTP client that wraps all sent/given files with an encryption"""
 
 import base64
+import binascii
 import hashlib
-import io
 from ftplib import FTP
+from io import BytesIO
 from logging import getLogger
 
+import nacl.exceptions
 import nacl.secret
 import nacl.utils
 
@@ -97,20 +99,17 @@ class EncryptedFTPClient(FTP):
             enc_filename = self.ftp_encrypt(filename)
         cmd = "STOR {}".format(enc_filename)
 
-        buf = io.BytesIO(self.ftp_encrypt(content).encode("utf8"))
+        buf = BytesIO(self.ftp_encrypt(content).encode("utf8"))
         return super().storbinary(cmd, buf)
 
     def readfile(self, filename: str):
         enc_filename = self.get_pwd_encrypted_path(filename)
         cmd = "RETR {}".format(enc_filename)
-        # TODO: improve i/o usage
-        f = open("tempcrypt", "w")
-
+        buf = BytesIO()
         def callback(data: bytes):
-            f.write(data.decode("utf-8"))
+            buf.write(data)
 
         super().retrbinary(cmd, callback)
-        f.close()
-        f = open("tempcrypt", "rb")
-        content = self.ftp_decrypt(f.read().decode("utf-8"))
+        buf.seek(0)
+        content = self.ftp_decrypt(buf.read().decode("utf-8"))
         return content
