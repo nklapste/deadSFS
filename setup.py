@@ -61,7 +61,7 @@ def readme():
 setup(
     name="deadSFS",
     version=VERSION,
-    description="",
+    description="A python FTP console that provides a simple secure file system (SFS)",
     long_description=readme(),
     author="Nathan Klapstein",
     author_email="nklapste@ualberta.ca",
