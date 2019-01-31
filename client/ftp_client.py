@@ -71,8 +71,8 @@ class EncryptedFTPClient(FTP):
                 return enc_filename
         raise FileNotFoundError("path: {} does not exist in PWD".format(path))
 
-    def nlst(self, dirname: str, *args):
-        if dirname == "" or dirname is None:
+    def nlst(self, dirname: str = None, *args):
+        if dirname == "" or dirname == "." or dirname is None:
             enc_dirs = super().nlst(*args)
         else:
             enc_dirs = super().nlst(self.ftp_encrypt(dirname), *args)
