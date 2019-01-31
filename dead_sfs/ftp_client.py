@@ -71,6 +71,7 @@ class EncryptedFTPClient(FTP):
             "cannot get encrypted path for ‘{}’: "
             "File **likely** does not exist".format(path))
 
+    # TODO: move to only taking in *args?
     def shared_nlst(self, dirname: str = None, *args):
         if not dirname or dirname in ["", "."]:
             enc_dirs = super().nlst(*args)
@@ -90,8 +91,8 @@ class EncryptedFTPClient(FTP):
                 failed_files.append(os.path.split(dir)[-1])
         return decrypted_files, failed_files
 
-    def nlst(self, dirname: str, *args):
-        decrypted_files, failed_files = self.shared_nlst(dirname, *args)
+    def nlst(self, *args):
+        decrypted_files, failed_files = self.shared_nlst(*args)
         return decrypted_files
 
     def mkd(self, dirname: str):

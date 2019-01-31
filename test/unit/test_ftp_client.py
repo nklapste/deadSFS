@@ -84,6 +84,14 @@ def test_get_pwd_encrypted_path(ftp_client):
         mock_ftp_nlst.assert_called_once_with()
 
 
+def test_get_pwd_encrypted_path_junk(ftp_client):
+    return_value = ftp_client.ftp_encrypt("test_file")
+    with patch.object(FTP, "nlst", return_value=[return_value, "junk"])\
+            as mock_ftp_nlst:
+        assert ftp_client.get_pwd_encrypted_path("test_file") == return_value
+        mock_ftp_nlst.assert_called_once_with()
+
+
 def test_get_pwd_encrypted_path_nonsuch(ftp_client):
     with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
         with pytest.raises(FileNotFoundError):
@@ -179,12 +187,24 @@ def test_delete_nonsuch(mock_ftp_delete, secret_key):
         mock_ftp_nlst.assert_called_once()
 
 
+# TODO: these tests need to be investigated further
 def test_nlst_dir(ftp_client):
     return_value = ftp_client.ftp_encrypt("test_dir")
     with patch.object(FTP, "nlst", return_value=[return_value])\
             as mock_ftp_nlst:
         assert ftp_client.nlst("test_dir") == ["test_dir"]
-        mock_ftp_nlst.assert_called_once()
+        mock_ftp_nlst.assert_called()
+        assert mock_ftp_nlst.call_args[0][0] != "test_dir"
+        assert ftp_client.ftp_decrypt(mock_ftp_nlst.call_args[0][0]) == \
+            'test_dir'
+
+
+def test_nlst_dir_junk(ftp_client):
+    return_value = ftp_client.ftp_encrypt("test_dir")
+    with patch.object(FTP, "nlst", return_value=[return_value, "junk"])\
+            as mock_ftp_nlst:
+        assert ftp_client.nlst("test_dir") == ["test_dir"]
+        mock_ftp_nlst.assert_called()
         assert mock_ftp_nlst.call_args[0][0] != "test_dir"
         assert ftp_client.ftp_decrypt(mock_ftp_nlst.call_args[0][0]) == \
             'test_dir'
