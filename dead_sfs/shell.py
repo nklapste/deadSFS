@@ -78,7 +78,7 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_nlst(self, arg):
         """List the contents of the directory specified by its encrypted
         filename on the remote filesystem"""
-        print(self.ftp_client.unecrypted_ftp.nlst(arg))
+        print(self.ftp_client.non_decrypted_ftp.nlst(arg))
 
     @ftp_connected
     def do_mkd(self, arg):
@@ -95,7 +95,7 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_rmd(self, arg):
         """Remove a directory specified by its encrypted filename
         from the remote filesystem"""
-        print(self.ftp_client.unecrypted_ftp.rmd(arg))
+        print(self.ftp_client.non_decrypted_ftp.rmd(arg))
 
     @ftp_connected
     def do_cwd(self, arg):
@@ -106,7 +106,7 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_cwd(self, arg):
         """Change the current working directory of the remote filesystem
         to the one specified by its encrypted path"""
-        print(self.ftp_client.unecrypted_ftp.cwd(arg))
+        print(self.ftp_client.non_decrypted_ftp.cwd(args.raw_filename))
 
     @ftp_connected
     def do_wf(self, arg):
@@ -133,7 +133,7 @@ class DeadSFSShell(cmd2.Cmd):
         def callback(data: bytes):
             buf.write(data)
 
-        self.ftp_client.unecrypted_ftp.retrbinary(cmd, callback)
+        self.ftp_client.non_decrypted_ftp.retrbinary(cmd, callback)
         buf.seek(0)
         content = buf.read().decode("utf-8")
         print("obtained {}'s content:\n{}".format(arg, content))
@@ -149,4 +149,4 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_rmf(self, arg):
         """Delete a file specified by its encrypted filename from the
         remote filesystem without"""
-        print(self.ftp_client.unecrypted_ftp.delete(arg))
+        print(self.ftp_client.non_decrypted_ftp.delete(arg))
