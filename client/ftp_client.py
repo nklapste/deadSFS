@@ -52,15 +52,15 @@ class EncryptedFTPClient(FTP):
             if computed_hash == given_hash:
                 __log__.info("decrypted FTP message: {}".format(string))
                 return string.decode("utf-8")
-            __log__.error(
-                    "checksum error given hash:{} computed hash: {}".format(
-                        given_hash, computed_hash))
-        except Exception:
+            raise ValueError(
+                "checksum error given hash:{} computed hash: {}".format(
+                    given_hash, computed_hash))
+        except (nacl.exceptions.CryptoError, IndexError,
+                binascii.Error, ValueError):
             __log__.exception(
-                "failed to decrypt FTP message: {}".format(safe_enc_string))
-        __log__.warning("detected unauthorized modification of "
-                        "remote filesystem")
-        return safe_enc_string
+                "detected unauthorized modification of remote filesystem "
+                "with FTP message: {}".format(safe_enc_string))
+            raise
 
     def get_pwd_encrypted_path(self, path: str):
         for enc_filename in super().nlst():
