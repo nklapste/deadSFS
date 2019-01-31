@@ -123,8 +123,8 @@ class EncryptedFTPClient(FTP):
 
         if self.path_exists(toname):
             raise FileExistsError(
-                "cannot rename file ‘{}’ to ‘{}’: File exists".format(
-                    fromname, toname))
+                "cannot rename file ‘{}’ to ‘{}’: "
+                "File exists".format(fromname, toname))
         super().rename(self.get_pwd_encrypted_path(fromname), self.ftp_encrypt(toname))
 
     def size(self, filename: str):
