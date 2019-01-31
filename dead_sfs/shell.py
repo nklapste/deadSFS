@@ -40,7 +40,7 @@ class DeadSFSShell(cmd.Cmd):
         super().__init__()
         self.ftp_client = EncryptedFTPClient(key)
     
-    def do_exit(self, arg):
+    def do_exit(self, _):
         """Exit out of the deadSFS shell
 
         Close connections from the both the deadSFS server and FTP server
