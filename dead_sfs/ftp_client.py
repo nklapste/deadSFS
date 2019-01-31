@@ -116,16 +116,16 @@ class EncryptedFTPClient(FTP):
         return content
 
     def rename(self, fromname: str, toname: str):
-        if self.path_exists(fromname):
-            if self.path_exists(toname):
-                raise FileExistsError(
-                    "cannot rename file ‘{}’ to ‘{}’: File exists".format(
-                        fromname, toname))
-            super().rename(self.get_pwd_encrypted_path(fromname), self.ftp_encrypt(toname))
-        else:
+        if not self.path_exists(fromname):
             raise FileNotFoundError(
                 "cannot rename file ‘{}’: "
                 "File does not exist".format(fromname))
+
+        if self.path_exists(toname):
+            raise FileExistsError(
+                "cannot rename file ‘{}’ to ‘{}’: File exists".format(
+                    fromname, toname))
+        super().rename(self.get_pwd_encrypted_path(fromname), self.ftp_encrypt(toname))
 
     def size(self, filename: str):
         return super().size(self.get_pwd_encrypted_path(filename))
