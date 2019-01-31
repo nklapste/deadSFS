@@ -75,7 +75,7 @@ setup(
     packages=find_packages(exclude=["test"]),
     include_package_data=True,
     install_requires=[
-        "pynacl"
+        "pynacl>=1.3.0,<2.0.0"
     ],
     tests_require=[
         "pytest>=4.1.0,<5.0.0",
