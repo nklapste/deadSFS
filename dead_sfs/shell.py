@@ -40,11 +40,6 @@ class DeadSFSShell(cmd.Cmd):
         super().__init__()
         self.ftp_client = EncryptedFTPClient(key)
 
-    def postloop(self):
-        """Close the connections to the FTP server after the command 
-        loop closes"""
-        self.ftp_client.close()
-
     ###############################
     # remote filesystem commands
     ###############################
