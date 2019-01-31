@@ -12,7 +12,7 @@ import nacl.utils
 
 
 def get_parser() -> argparse.ArgumentParser:
-    """Create and return the argparser for deadSFS"""
+    """Create and return the argparser for deadSFS-keygen"""
     parser = argparse.ArgumentParser(
         description="Create a key file for usage as a private key for in the "
                     "deadSFS shell",
