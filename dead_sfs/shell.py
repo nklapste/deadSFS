@@ -4,14 +4,13 @@
 """command shell for deadSFS"""
 
 import argparse
+import getpass
+from functools import wraps
+from io import BytesIO
+from logging import getLogger
 from typing import List
 
 import cmd2
-import getpass
-from io import BytesIO
-from functools import wraps
-from logging import getLogger
-
 from cmd2 import with_argparser, argparse_completer, with_category
 
 from dead_sfs.ftp_client import EncryptedFTPClient, EncryptedFTPTLSClient
@@ -54,19 +53,19 @@ class DeadSFSShell(cmd2.Cmd):
     CAT_ENCRYPTED_FTP_COMMANDS = "Encrypted FTP commands"
     CAT_RAW_FTP_COMMANDS = "Raw (non-decrypted) FTP commands"
 
-    def instance_file_names(self, _) -> List[str]:
+    def _instance_pwd_file_names(self, _) -> List[str]:
         decrypted_files, failed_files = self.ftp_client.shared_nlst()
 
         completions_with_desc = decrypted_files + list(map(lambda x: "WARNING: NOT DECRYPTED: " + x,  failed_files))
         return completions_with_desc
 
-    filename_parser = argparse_completer.ACArgumentParser(prog='filename')
+    filename_parser = argparse_completer.ACArgumentParser()
     filename = filename_parser.add_argument(
         "filename", nargs="?", help="decrypted filename/path")
     setattr(filename,
             argparse_completer.ACTION_ARG_CHOICES, 'instance_file_names')
 
-    def instance_raw_file_names(self) -> List[str]:
+    def _instance_pwd_raw_file_names(self) -> List[str]:
         return self.ftp_client.non_decrypted_ftp.nlst()
 
     raw_filename_parser = argparse_completer.ACArgumentParser()
