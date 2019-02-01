@@ -55,7 +55,6 @@ class DeadSFSShell(cmd2.Cmd):
 
     def _instance_pwd_file_names(self, _) -> List[str]:
         decrypted_files, failed_files = self.ftp_client.shared_nlst()
-
         completions_with_desc = decrypted_files + list(map(lambda x: "WARNING: NOT DECRYPTED: " + x,  failed_files))
         return completions_with_desc
 
