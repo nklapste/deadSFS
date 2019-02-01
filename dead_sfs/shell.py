@@ -63,7 +63,7 @@ class DeadSFSShell(cmd2.Cmd):
     filename = filename_parser.add_argument(
         "filename", nargs="?", help="decrypted filename/path")
     setattr(filename,
-            argparse_completer.ACTION_ARG_CHOICES, 'instance_file_names')
+            argparse_completer.ACTION_ARG_CHOICES, '_instance_file_names')
 
     def _instance_pwd_raw_file_names(self) -> List[str]:
         return self.ftp_client.non_decrypted_ftp.nlst()
@@ -72,7 +72,7 @@ class DeadSFSShell(cmd2.Cmd):
     raw_filename = raw_filename_parser.add_argument(
         "raw_filename", nargs="?", help="raw (non-decrypted) filename/path")
     setattr(raw_filename,
-            argparse_completer.ACTION_ARG_CHOICES, 'instance_raw_file_names')
+            argparse_completer.ACTION_ARG_CHOICES, '_instance_raw_file_names')
 
     def __init__(self, key: bytes, tls: bool = False):
         """Initialize the deadSFS shell"""
