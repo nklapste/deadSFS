@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""pytests for :class:`dead_sfs.ftp_client`"""
+"""pytests for :class:`dead_sfs.enc_ftp`"""
 
 import base64
 import io
@@ -14,7 +14,7 @@ import nacl.secret
 import nacl.utils
 import pytest
 
-from dead_sfs.ftp_client import EncryptedFTPClient, EncryptedFTPTLSClient
+from dead_sfs.encrypted_ftp import EncryptedFTP, EncryptedFTPTLS
 
 
 @pytest.fixture(scope='session')
@@ -23,19 +23,19 @@ def secret_key():
 
 
 def test_enc_ftp_construction(secret_key):
-    ftp_client = EncryptedFTPClient(secret_key)
+    ftp_client = EncryptedFTP(secret_key)
     assert ftp_client
-    assert isinstance(ftp_client, EncryptedFTPClient)
+    assert isinstance(ftp_client, EncryptedFTP)
     assert isinstance(ftp_client, FTP)
     assert ftp_client.secretbox
     assert isinstance(ftp_client.secretbox, nacl.secret.SecretBox)
 
 
 def test_enc_ftp_tls_construction(secret_key):
-    ftp_client = EncryptedFTPTLSClient(secret_key)
+    ftp_client = EncryptedFTPTLS(secret_key)
     assert ftp_client
-    assert isinstance(ftp_client, EncryptedFTPClient)
-    assert isinstance(ftp_client, EncryptedFTPTLSClient)
+    assert isinstance(ftp_client, EncryptedFTP)
+    assert isinstance(ftp_client, EncryptedFTPTLS)
     assert isinstance(ftp_client, FTP)
     assert isinstance(ftp_client, FTP_TLS)
     assert ftp_client.secretbox
@@ -44,7 +44,7 @@ def test_enc_ftp_tls_construction(secret_key):
 
 @pytest.fixture(scope="session")
 def ftp_client(secret_key):
-    return EncryptedFTPClient(secret_key)
+    return EncryptedFTP(secret_key)
 
 
 def test_ftp_encrypt(ftp_client):
@@ -64,7 +64,7 @@ def test_ftp_decrypt(ftp_client):
 
 
 def test_ftp_decrypt_modified(secret_key):
-    ftp_client = EncryptedFTPClient(secret_key)
+    ftp_client = EncryptedFTP(secret_key)
     enc = ftp_client.ftp_encrypt("test_file")
 
     # tamper the encrypted files
@@ -158,7 +158,7 @@ def test_rmd_nonsuch(mock_ftp_rmd, ftp_client):
 
 @patch("ftplib.FTP.mkd")
 def test_mkd(mock_ftp_mkd, secret_key):
-    ftp_client = EncryptedFTPClient(secret_key)
+    ftp_client = EncryptedFTP(secret_key)
     return_value = ftp_client.ftp_encrypt("test_dir")
     with patch.object(FTP, "nlst", return_value=[return_value])\
             as mock_ftp_nlst:
@@ -194,7 +194,7 @@ def test_delete(mock_ftp_delete, ftp_client):
 
 @patch("ftplib.FTP.delete")
 def test_delete_nonsuch(mock_ftp_delete, secret_key):
-    ftp_client = EncryptedFTPClient(secret_key)
+    ftp_client = EncryptedFTP(secret_key)
     with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
         with pytest.raises(FileNotFoundError):
             ftp_client.delete("test_file")
@@ -290,7 +290,7 @@ def test_ftp_readfile(ftp_client):
 
     with patch.object(FTP, "retrbinary", return_value=retrbinary_return_value)\
             as mock_retrbinary:
-        with patch("dead_sfs.ftp_client.BytesIO", return_value=MockBytesIO()):
+        with patch("dead_sfs.encrypted_ftp.BytesIO", return_value=MockBytesIO()):
             nlst_return_value = ftp_client.ftp_encrypt("test_file")
             with patch.object(FTP, "nlst", return_value=[nlst_return_value])\
                     as mock_ftp_nlst:
@@ -320,7 +320,7 @@ def test_rename(mock_ftp_rename, ftp_client):
 
 @patch("ftplib.FTP.rename")
 def test_rename_collision(mock_ftp_rename, secret_key):
-    ftp_client = EncryptedFTPClient(secret_key)
+    ftp_client = EncryptedFTP(secret_key)
     return_value_1 = ftp_client.ftp_encrypt("test_file_1")
     return_value_2 = ftp_client.ftp_encrypt("test_file_2")
     with patch.object(FTP, "nlst",

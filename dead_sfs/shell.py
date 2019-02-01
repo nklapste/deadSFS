@@ -13,7 +13,7 @@ from typing import List
 import cmd2
 from cmd2 import with_argparser, argparse_completer, with_category
 
-from dead_sfs.ftp_client import EncryptedFTPClient, EncryptedFTPTLSClient
+from dead_sfs.encrypted_ftp import EncryptedFTP, EncryptedFTPTLS
 
 __log__ = getLogger(__name__)
 
@@ -54,7 +54,7 @@ class DeadSFSShell(cmd2.Cmd):
     CAT_RAW_FTP_COMMANDS = "Raw (non-decrypted) FTP commands"
 
     def _instance_pwd_file_names(self, _) -> List[str]:
-        decrypted_files, failed_files = self.ftp_client.shared_nlst()
+        decrypted_files, failed_files = self.enc_ftp.shared_nlst()
         completions_with_desc = decrypted_files + list(map(lambda x: "WARNING: NOT DECRYPTED: " + x,  failed_files))
         return completions_with_desc
 
@@ -65,7 +65,7 @@ class DeadSFSShell(cmd2.Cmd):
             argparse_completer.ACTION_ARG_CHOICES, '_instance_file_names')
 
     def _instance_pwd_raw_file_names(self) -> List[str]:
-        return self.ftp_client.non_decrypted_ftp.nlst()
+        return self.enc_ftp.non_decrypted_ftp.nlst()
 
     raw_filename_parser = argparse_completer.ACArgumentParser()
     raw_filename = raw_filename_parser.add_argument(
@@ -78,34 +78,34 @@ class DeadSFSShell(cmd2.Cmd):
         self.allow_cli_args = False
         super().__init__()
         if tls:
-            self.ftp_client = EncryptedFTPTLSClient(key)
+            self.enc_ftp = EncryptedFTPTLS(key)
         else:
-            self.ftp_client = EncryptedFTPClient(key)
+            self.enc_ftp = EncryptedFTP(key)
 
     def do_quit(self, _):
         """Exit out of the deadSFS shell
 
         Close connections for the FTP server if they exist.
         """
-        self.ftp_client.close()
+        self.enc_ftp.close()
         return super().do_quit(_)
 
     @with_category(CAT_CONNECTION)
     @with_argparser(get_connect_argparser())
     def do_connect(self, args):
         """Connect and login into the remote FTP server"""
-        print(self.ftp_client.connect(args.host, args.port))
-        print(self.ftp_client.login(user=input("username: "),
-                                    passwd=getpass.getpass()))
-        self.ftp_client.set_pasv(True)
-        if isinstance(self.ftp_client, EncryptedFTPTLSClient):
-            self.ftp_client.prot_p()
+        print(self.enc_ftp.connect(args.host, args.port))
+        print(self.enc_ftp.login(user=input("username: "),
+                                 passwd=getpass.getpass()))
+        self.enc_ftp.set_pasv(True)
+        if isinstance(self.enc_ftp, EncryptedFTPTLS):
+            self.enc_ftp.prot_p()
 
     @ftp_connected
     @with_category(CAT_CONNECTION)
     def do_disconnect(self, _):
         """Disconnect from the remote FTP server"""
-        print(self.ftp_client.quit())
+        print(self.enc_ftp.quit())
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
@@ -113,7 +113,7 @@ class DeadSFSShell(cmd2.Cmd):
     def do_nlst(self, args):
         """List the contents of the current working directory of the
         remote filesystem"""
-        print(self.ftp_client.nlst(args.filename))
+        print(self.enc_ftp.nlst(args.filename))
 
     @ftp_connected
     @with_category(CAT_RAW_FTP_COMMANDS)
@@ -125,7 +125,7 @@ class DeadSFSShell(cmd2.Cmd):
             filename = "."
         else:
             filename = args.raw_filename
-        print(self.ftp_client.non_decrypted_ftp.nlst(filename))
+        print(self.enc_ftp.non_decrypted_ftp.nlst(filename))
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
@@ -133,14 +133,14 @@ class DeadSFSShell(cmd2.Cmd):
     def do_mkd(self, args):
         """Make a sub-directory within the current working directory
         of the remote filesystem"""
-        print(self.ftp_client.mkd(args.filename))
+        print(self.enc_ftp.mkd(args.filename))
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     @with_argparser(filename_parser)
     def do_rmd(self, args):
         """Remove a directory from the remote filesystem"""
-        print(self.ftp_client.rmd(args.filename))
+        print(self.enc_ftp.rmd(args.filename))
 
     @ftp_connected
     @with_category(CAT_RAW_FTP_COMMANDS)
@@ -148,14 +148,14 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_rmd(self, args):
         """Remove a directory specified by its encrypted filename
         from the remote filesystem"""
-        print(self.ftp_client.non_decrypted_ftp.rmd(args.raw_filename))
+        print(self.enc_ftp.non_decrypted_ftp.rmd(args.raw_filename))
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     @with_argparser(filename_parser)
     def do_cwd(self, args):
         """Change the current working directory of the remote filesystem"""
-        print(self.ftp_client.cwd(args.filename))
+        print(self.enc_ftp.cwd(args.filename))
 
     @ftp_connected
     @with_category(CAT_RAW_FTP_COMMANDS)
@@ -163,14 +163,14 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_cwd(self, args):
         """Change the current working directory of the remote filesystem
         to the one specified by its encrypted path"""
-        print(self.ftp_client.non_decrypted_ftp.cwd(args.raw_filename))
+        print(self.enc_ftp.non_decrypted_ftp.cwd(args.raw_filename))
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     def do_wf(self, arg):
         """Encrypt and write a file into the remote filesystem"""
         with open(arg.filename, "r") as f:
-            print(self.ftp_client.storefile(arg, f.read()))
+            print(self.enc_ftp.storefile(arg, f.read()))
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
@@ -178,7 +178,7 @@ class DeadSFSShell(cmd2.Cmd):
     def do_rf(self, args):
         """Decrypt, Read, and save in the current working directory a file
         from the remote filesystem"""
-        content = self.ftp_client.readfile(args.filename)
+        content = self.enc_ftp.readfile(args.filename)
         print("obtained {}'s content:\n{}".format(args.filename, content))
         with open(args.filename, "w") as f:
             f.write(content)
@@ -195,7 +195,7 @@ class DeadSFSShell(cmd2.Cmd):
         def callback(data: bytes):
             buf.write(data)
 
-        self.ftp_client.non_decrypted_ftp.retrbinary(cmd, callback)
+        self.enc_ftp.non_decrypted_ftp.retrbinary(cmd, callback)
         buf.seek(0)
         content = buf.read().decode("utf-8")
         print("obtained {}'s content:\n{}".format(args.raw_filename, content))
@@ -207,7 +207,7 @@ class DeadSFSShell(cmd2.Cmd):
     @with_argparser(filename_parser)
     def do_rmf(self, args):
         """Delete a file from the remote filesystem"""
-        print(self.ftp_client.delete(args.filename))
+        print(self.enc_ftp.delete(args.filename))
 
     @ftp_connected
     @with_category(CAT_RAW_FTP_COMMANDS)
@@ -215,4 +215,4 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_rmf(self, args):
         """Delete a file specified by its encrypted filename from the
         remote filesystem without"""
-        print(self.ftp_client.non_decrypted_ftp.delete(args.raw_filename))
+        print(self.enc_ftp.non_decrypted_ftp.delete(args.raw_filename))

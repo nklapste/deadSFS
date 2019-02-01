@@ -18,7 +18,7 @@ import nacl.utils
 __log__ = getLogger(__name__)
 
 
-class EncryptedFTPClient(FTP):
+class EncryptedFTP(FTP):
     """Simple wrapper class of :class:`ftplib.FTP` the encrypts both a
     file's name and contents before sending it to the remote FTP server"""
 
@@ -176,6 +176,6 @@ class EncryptedFTPClient(FTP):
         )
 
 
-class EncryptedFTPTLSClient(EncryptedFTPClient, FTP_TLS):
-    """"Subclass of :class:`EncryptedFTPClient` that supports
+class EncryptedFTPTLS(EncryptedFTP, FTP_TLS):
+    """"Subclass of :class:`EncryptedFTP` that supports
     FTP TLS connections"""
