@@ -9,6 +9,7 @@ import os
 from ftplib import FTP, FTP_TLS
 from io import BytesIO
 from logging import getLogger
+from typing import Tuple, List, Optional
 
 import nacl.exceptions
 import nacl.secret
@@ -47,7 +48,7 @@ class EncryptedFTPClient(FTP):
                 "with FTP message: {}".format(safe_enc_string), exc_info=True)
             raise
 
-    def path_exists(self, path: str):
+    def path_exists(self, path: str) -> bool:
         """Check whether a decrypted path exists within the encrypted
         filesystem"""
         try:
@@ -56,7 +57,7 @@ class EncryptedFTPClient(FTP):
         except FileNotFoundError:
             return False
 
-    def get_pwd_encrypted_path(self, path: str):
+    def get_pwd_encrypted_path(self, path: str) -> str:
         """Attempt to match a decrypted path with a
         encrypted filesystem path"""
         for enc_filename in super().nlst():
@@ -71,8 +72,7 @@ class EncryptedFTPClient(FTP):
             "cannot get encrypted path for ‘{}’: "
             "File **likely** does not exist".format(path))
 
-    # TODO: move to only taking in *args?
-    def shared_nlst(self, *args):
+    def shared_nlst(self, *args) -> Tuple[List[str], List[str]]:
         files = []
         for arg in args:
             if self.path_exists(arg):
@@ -93,7 +93,7 @@ class EncryptedFTPClient(FTP):
                 failed_files.append(os.path.split(dir)[-1])
         return decrypted_files, failed_files
 
-    def nlst(self, *args):
+    def nlst(self, *args) -> List[str]:
         decrypted_files, failed_files = self.shared_nlst(*args)
         return decrypted_files
 
@@ -126,7 +126,7 @@ class EncryptedFTPClient(FTP):
         buf = BytesIO(self.ftp_encrypt(content).encode("utf8"))
         return super().storbinary(cmd, buf)
 
-    def readfile(self, filename: str):
+    def readfile(self, filename: str) -> str:
         enc_filename = self.get_pwd_encrypted_path(filename)
         cmd = "RETR {}".format(enc_filename)
         buf = BytesIO()
@@ -149,13 +149,16 @@ class EncryptedFTPClient(FTP):
             raise FileExistsError(
                 "cannot rename file ‘{}’ to ‘{}’: "
                 "File exists".format(fromname, toname))
-        super().rename(self.get_pwd_encrypted_path(fromname), self.ftp_encrypt(toname))
+        return super().rename(
+            self.get_pwd_encrypted_path(fromname),
+            self.ftp_encrypt(toname)
+        )
 
-    def size(self, filename: str):
+    def size(self, filename: str) -> Optional[int]:
         return super().size(self.get_pwd_encrypted_path(filename))
 
     def chmod(self, chmod_permissions: str, filename: str):
-        super().sendcmd(
+        return super().sendcmd(
             'SITE CHMOD {} {}'.format(
                 chmod_permissions,
                 self.get_pwd_encrypted_path(filename)
