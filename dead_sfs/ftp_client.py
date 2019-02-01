@@ -9,7 +9,7 @@ import os
 from ftplib import FTP, FTP_TLS
 from io import BytesIO
 from logging import getLogger
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict
 
 import nacl.exceptions
 import nacl.secret
@@ -71,6 +71,16 @@ class EncryptedFTPClient(FTP):
         raise FileNotFoundError(
             "cannot get encrypted path for ‘{}’: "
             "File **likely** does not exist".format(path))
+
+    def map_enc_dec_files(self, *args) -> Dict[str, Optional[str]]:
+        enc_dec_map = {}
+        for arg in args:
+            if self.path_exists(arg):
+                file = self.get_pwd_encrypted_path(arg)
+                enc_dec_map[file] = arg
+            else:
+                enc_dec_map[arg] = None
+        return enc_dec_map
 
     def shared_nlst(self, *args) -> Tuple[List[str], List[str]]:
         files = []

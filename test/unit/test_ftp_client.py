@@ -100,6 +100,20 @@ def test_get_pwd_encrypted_path_nonsuch(ftp_client):
         mock_ftp_nlst.assert_called_once_with()
 
 
+def test_map_enc_dec_files(ftp_client):
+    return_value = ftp_client.ftp_encrypt("test_file")
+    with patch.object(FTP, "nlst",
+                      return_value=[return_value, "non_decrypted"])\
+            as mock_ftp_nlst:
+        decrypted_file, failed_file = ftp_client.shared_nlst()
+        assert "test_file" in decrypted_file
+        assert "non_decrypted" in failed_file
+        enc_dec_map = ftp_client.map_enc_dec_files(*(decrypted_file + failed_file))
+        assert enc_dec_map["non_decrypted"] is None
+        assert "test_file" in list(enc_dec_map.values())
+        mock_ftp_nlst.assert_called()
+
+
 @patch("ftplib.FTP.cwd")
 @pytest.mark.parametrize("directory", ["..", ".", ""])
 def test_cwd_backdir(mock_ftp_cwd, ftp_client, directory):
