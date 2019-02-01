@@ -86,7 +86,8 @@ def test_get_pwd_encrypted_path(ftp_client):
 
 def test_get_pwd_encrypted_path_junk(ftp_client):
     return_value = ftp_client.ftp_encrypt("test_file")
-    with patch.object(FTP, "nlst", return_value=[return_value, "junk"])\
+    with patch.object(FTP, "nlst",
+                      return_value=["junk", return_value, "junk"])\
             as mock_ftp_nlst:
         assert ftp_client.get_pwd_encrypted_path("test_file") == return_value
         mock_ftp_nlst.assert_called_once_with()
@@ -201,7 +202,8 @@ def test_nlst_dir(ftp_client):
 
 def test_nlst_dir_junk(ftp_client):
     return_value = ftp_client.ftp_encrypt("test_dir")
-    with patch.object(FTP, "nlst", return_value=[return_value, "junk"])\
+    with patch.object(FTP, "nlst",
+                      return_value=["junk", return_value, "junk"])\
             as mock_ftp_nlst:
         assert ftp_client.nlst("test_dir") == ["test_dir"]
         mock_ftp_nlst.assert_called()
