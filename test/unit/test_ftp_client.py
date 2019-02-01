@@ -212,11 +212,11 @@ def test_nlst_dir_junk(ftp_client):
             'test_dir'
 
 
-@pytest.mark.parametrize("directory", [".", "", None])
+@pytest.mark.parametrize("directory", [".", ""])
 def test_nlst_current_dir(ftp_client, directory):
     with patch.object(FTP, "nlst", return_value=[]) as mock_ftp_nlst:
         assert ftp_client.nlst(directory) == []
-        mock_ftp_nlst.assert_called_once_with()
+        mock_ftp_nlst.assert_called_with(directory)
 
 
 def test_nlst_no_args(ftp_client):
@@ -260,8 +260,8 @@ def test_ftp_storefile_nonsuch(mock_ftp_storbinary, ftp_client):
 def test_ftp_readfile(ftp_client):
     retrbinary_return_value = ftp_client.ftp_encrypt("test_content")
 
-    # mocking BytesIO can be a pain
     class MockBytesIO(io.BytesIO):
+        """mocking BytesIO can be a pain"""
         def __init__(self):
             super().__init__()
 

@@ -72,14 +72,16 @@ class EncryptedFTPClient(FTP):
             "File **likely** does not exist".format(path))
 
     # TODO: move to only taking in *args?
-    def shared_nlst(self, dirname: str = None, *args):
-        if not dirname or dirname in ["", "."]:
-            enc_dirs = super().nlst(*args)
-        elif self.path_exists(dirname):
-            enc_dirs = super().nlst(self.get_pwd_encrypted_path(dirname))
-            # TODO will get full path including /
-        else:
-            enc_dirs = super().nlst(dirname)
+    def shared_nlst(self, *args):
+        files = []
+        for arg in args:
+            if self.path_exists(arg):
+                file = self.get_pwd_encrypted_path(arg)
+            else:
+                file = arg
+            files.append(file)
+
+        enc_dirs = super().nlst(*files)
 
         decrypted_files = []
         failed_files = []
