@@ -24,7 +24,7 @@ def ftp_connected(f):
 
     @wraps(f)
     def wrapper(*args):
-        if args[0].ftp_client.sock:
+        if args[0].enc_ftp.sock:
             return f(*args)
         __log__.error(
             "you must be connected to a deadSFS ftp server to "
