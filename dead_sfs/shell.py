@@ -34,15 +34,6 @@ def ftp_connected(f):
     return wrapper
 
 
-def get_connect_argparser() -> argparse.ArgumentParser:
-    connect_argparser = argparse.ArgumentParser()
-    connect_argparser.add_argument('host', type=str,
-                                   help="hostname to connect to")
-    connect_argparser.add_argument('port', type=int,
-                                   help="port to connect to")
-    return connect_argparser
-
-
 class DeadSFSShell(cmd2.Cmd):
     """Main shell for deadSFS"""
 
@@ -55,14 +46,13 @@ class DeadSFSShell(cmd2.Cmd):
 
     def _instance_pwd_file_names(self, _) -> List[str]:
         decrypted_files, failed_files = self.enc_ftp.shared_nlst()
-        completions_with_desc = decrypted_files + list(map(lambda x: "WARNING: NOT DECRYPTED: " + x,  failed_files))
-        return completions_with_desc
+        return decrypted_files + list(map(lambda x: "WARNING: NOT DECRYPTED: {}".format(x),  failed_files))
 
     filename_parser = argparse_completer.ACArgumentParser()
     filename = filename_parser.add_argument(
         "filename", nargs="?", help="decrypted filename/path")
-    setattr(filename,
-            argparse_completer.ACTION_ARG_CHOICES, '_instance_file_names')
+    setattr(filename, argparse_completer.ACTION_ARG_CHOICES,
+            '_instance_pwd_file_names')
 
     def _instance_pwd_raw_file_names(self) -> List[str]:
         return self.enc_ftp.non_decrypted_ftp.nlst()
@@ -70,11 +60,15 @@ class DeadSFSShell(cmd2.Cmd):
     raw_filename_parser = argparse_completer.ACArgumentParser()
     raw_filename = raw_filename_parser.add_argument(
         "raw_filename", nargs="?", help="raw (non-decrypted) filename/path")
-    setattr(raw_filename,
-            argparse_completer.ACTION_ARG_CHOICES, '_instance_raw_file_names')
+    setattr(raw_filename, argparse_completer.ACTION_ARG_CHOICES,
+            '_instance_pwd_raw_file_names')
 
     def __init__(self, key: bytes, tls: bool = False):
-        """Initialize the deadSFS shell"""
+        """Initialize the deadSFS shell
+
+        :param key: The private key used for filename and file encryption
+        :param tls: Enable using a FTP TLS connection
+        """
         self.allow_cli_args = False
         super().__init__()
         if tls:
@@ -90,8 +84,14 @@ class DeadSFSShell(cmd2.Cmd):
         self.enc_ftp.close()
         return super().do_quit(_)
 
+    connect_argparser = argparse.ArgumentParser()
+    connect_argparser.add_argument('host', type=str,
+                                   help="hostname to connect to")
+    connect_argparser.add_argument('port', type=int,
+                                   help="port to connect to")
+
     @with_category(CAT_CONNECTION)
-    @with_argparser(get_connect_argparser())
+    @with_argparser(connect_argparser)
     def do_connect(self, args):
         """Connect and login into the remote FTP server"""
         print(self.enc_ftp.connect(args.host, args.port))
@@ -107,13 +107,21 @@ class DeadSFSShell(cmd2.Cmd):
         """Disconnect from the remote FTP server"""
         print(self.enc_ftp.quit())
 
+    @staticmethod
+    def _fix_filename_arg(filename_arg: str) -> str:
+        if filename_arg is None or \
+                isinstance(filename_arg, str) and not filename_arg.strip():
+            return "."
+        return filename_arg
+
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     @with_argparser(filename_parser)
     def do_nlst(self, args):
         """List the contents of the current working directory of the
         remote filesystem"""
-        print(self.enc_ftp.nlst(args.filename))
+        filename = DeadSFSShell._fix_filename_arg(args.filename)
+        print(self.enc_ftp.nlst(filename))
 
     @ftp_connected
     @with_category(CAT_RAW_FTP_COMMANDS)
@@ -121,10 +129,7 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_nlst(self, args):
         """List the contents of the directory specified by its encrypted
         filename on the remote filesystem"""
-        if args.raw_filename is None:
-            filename = "."
-        else:
-            filename = args.raw_filename
+        filename = DeadSFSShell._fix_filename_arg(args.raw_filename)
         print(self.enc_ftp.non_decrypted_ftp.nlst(filename))
 
     @ftp_connected
@@ -155,7 +160,8 @@ class DeadSFSShell(cmd2.Cmd):
     @with_argparser(filename_parser)
     def do_cwd(self, args):
         """Change the current working directory of the remote filesystem"""
-        print(self.enc_ftp.cwd(args.filename))
+        filename = DeadSFSShell._fix_filename_arg(args.filename)
+        print(self.enc_ftp.cwd(filename))
 
     @ftp_connected
     @with_category(CAT_RAW_FTP_COMMANDS)
@@ -163,7 +169,8 @@ class DeadSFSShell(cmd2.Cmd):
     def do_raw_cwd(self, args):
         """Change the current working directory of the remote filesystem
         to the one specified by its encrypted path"""
-        print(self.enc_ftp.non_decrypted_ftp.cwd(args.raw_filename))
+        filename = DeadSFSShell._fix_filename_arg(args.raw_filename)
+        print(self.enc_ftp.non_decrypted_ftp.cwd(filename))
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
