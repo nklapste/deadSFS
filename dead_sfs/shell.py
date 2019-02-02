@@ -157,6 +157,19 @@ class DeadSFSShell(cmd2.Cmd):
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
+    def do_pwd(self, _):
+        """Print the pathname of the current directory on the server"""
+        print(self.enc_ftp.pwd())
+
+    @ftp_connected
+    @with_category(CAT_RAW_FTP_COMMANDS)
+    def do_raw_pwd(self, _):
+        """Print the non-decrypted pathname of the current directory
+        on the server"""
+        print(self.enc_ftp.non_decrypted_ftp.pwd())
+
+    @ftp_connected
+    @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     @with_argparser(filename_parser)
     def do_cwd(self, args):
         """Change the current working directory of the remote filesystem"""

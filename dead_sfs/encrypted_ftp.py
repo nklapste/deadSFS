@@ -116,6 +116,29 @@ class EncryptedFTP(FTP):
     def rmd(self, dirname: str):
         return super().rmd(self.get_pwd_encrypted_path(dirname))
 
+    def decrypt_path(self, path):
+        """Decrypt a path component by component
+
+        Components that cannot be decrypted remain the same and are appended
+        to the output path non-less.
+        """
+        decrypted_path = ""
+        for path_comp in os.path.split(path):
+            if path_comp.startswith("/"):
+                path_comp = path_comp[1:]
+            try:
+                path_comp = self.ftp_decrypt(path_comp)
+            except (nacl.exceptions.CryptoError, IndexError,
+                    binascii.Error, ValueError):
+                pass
+            decrypted_path += "/" + path_comp
+        return decrypted_path
+
+    def pwd(self):
+        """Return the decrypted current working directory"""
+        pwd = super().pwd()
+        return self.decrypt_path(pwd)
+
     def cwd(self, dirname: str):
         # TODO: more elegant solution
         if dirname == "." or dirname == ".." or dirname == "":

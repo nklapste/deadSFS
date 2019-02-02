@@ -7,7 +7,7 @@ deadSFS
     :alt: Build Status
 
 A secure filesystem (SFS) client made in python that can hook into most
-existing FTP servers.
+existing Linux based FTP servers.
 
 Requirements
 ============
