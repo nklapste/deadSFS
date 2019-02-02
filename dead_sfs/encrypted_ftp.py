@@ -45,7 +45,7 @@ class EncryptedFTP(FTP):
                 binascii.Error, ValueError):
             __log__.critical(
                 "detected unauthorized modification of remote filesystem "
-                "with FTP message: {}".format(safe_enc_string), exc_info=True)
+                "with FTP message: {}".format(safe_enc_string))
             raise
 
     def path_exists(self, path: str) -> bool:
@@ -92,7 +92,6 @@ class EncryptedFTP(FTP):
             files.append(file)
 
         enc_dirs = super().nlst(*files)
-
         decrypted_files = []
         failed_files = []
         for dir in enc_dirs:

@@ -111,7 +111,7 @@ class DeadSFSShell(cmd2.Cmd):
     def _fix_filename_arg(filename_arg: str) -> str:
         if filename_arg is None or \
                 isinstance(filename_arg, str) and not filename_arg.strip():
-            return "."
+            return ""
         return filename_arg
 
     @ftp_connected
