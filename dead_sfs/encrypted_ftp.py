@@ -122,6 +122,7 @@ class EncryptedFTP(FTP):
         Components that cannot be decrypted remain the same and are appended
         to the output path non-less.
         """
+        # TODO: add detection and support for windows paths
         decrypted_path = ""
         for path_comp in os.path.split(path):
             if path_comp.startswith("/"):
