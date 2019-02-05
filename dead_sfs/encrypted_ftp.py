@@ -9,6 +9,7 @@ import os
 from ftplib import FTP, FTP_TLS
 from io import BytesIO
 from logging import getLogger
+from pathlib import PurePosixPath
 from typing import Tuple, List, Optional, Dict
 
 import nacl.exceptions
@@ -116,24 +117,28 @@ class EncryptedFTP(FTP):
     def rmd(self, dirname: str):
         return super().rmd(self.get_pwd_encrypted_path(dirname))
 
-    def decrypt_path(self, path):
+    def decrypt_path(self, path: str) -> str:
         """Decrypt a path component by component
 
         Components that cannot be decrypted remain the same and are appended
         to the output path non-less.
+
+
+        .. note::
+            This only supports PosixPath types for now.
+
+        .. todo::
+            Add detection and support for windows paths
         """
-        # TODO: add detection and support for windows paths
-        decrypted_path = ""
-        for path_comp in os.path.split(path):
-            if path_comp.startswith("/"):
-                path_comp = path_comp[1:]
+        decrypted_path = PurePosixPath()
+        for path_comp in PurePosixPath(path).parts:
             try:
                 path_comp = self.ftp_decrypt(path_comp)
             except (nacl.exceptions.CryptoError, IndexError,
                     binascii.Error, ValueError):
                 pass
-            decrypted_path += "/" + path_comp
-        return decrypted_path
+            decrypted_path = decrypted_path.joinpath(path_comp)
+        return str(decrypted_path)
 
     def pwd(self):
         """Return the decrypted current working directory"""

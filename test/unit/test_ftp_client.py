@@ -384,3 +384,16 @@ def test_chmod_nonsuch(mock_ftp_sendcmd, ftp_client):
             ftp_client.chmod("644", "test_file")
         mock_ftp_sendcmd.assert_not_called()
         mock_ftp_nlst.assert_called_once()
+
+
+def test_decrypt_path_encrypted_path(ftp_client):
+    dec_path = "test2"
+    enc_path = ftp_client.ftp_encrypt(dec_path)
+    full_path = "/test1/{}/test3".format(enc_path)
+    assert ftp_client.decrypt_path(full_path) == \
+           "/test1/{}/test3".format(dec_path)
+
+
+def test_decrypt_path_non_encrypted_path(ftp_client):
+    full_path = "/test1/test2/test3"
+    assert ftp_client.decrypt_path(full_path) == full_path
