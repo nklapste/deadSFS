@@ -108,7 +108,8 @@ def test_map_enc_dec_files(ftp_client):
         decrypted_file, failed_file = ftp_client.shared_nlst()
         assert "test_file" in decrypted_file
         assert "non_decrypted" in failed_file
-        enc_dec_map = ftp_client.map_enc_dec_files(*(decrypted_file + failed_file))
+        enc_dec_map = \
+            ftp_client.map_enc_dec_files(*(decrypted_file + failed_file))
         assert enc_dec_map["non_decrypted"] is None
         assert "test_file" in list(enc_dec_map.values())
         mock_ftp_nlst.assert_called()
@@ -290,7 +291,8 @@ def test_ftp_readfile(ftp_client):
 
     with patch.object(FTP, "retrbinary", return_value=retrbinary_return_value)\
             as mock_retrbinary:
-        with patch("dead_sfs.encrypted_ftp.BytesIO", return_value=MockBytesIO()):
+        with patch("dead_sfs.encrypted_ftp.BytesIO",
+                   return_value=MockBytesIO()):
             nlst_return_value = ftp_client.ftp_encrypt("test_file")
             with patch.object(FTP, "nlst", return_value=[nlst_return_value])\
                     as mock_ftp_nlst:
@@ -391,7 +393,7 @@ def test_decrypt_path_encrypted_path(ftp_client):
     enc_path = ftp_client.ftp_encrypt(dec_path)
     full_path = "/test1/{}/test3".format(enc_path)
     assert ftp_client.decrypt_path(full_path) == \
-           "/test1/{}/test3".format(dec_path)
+        "/test1/{}/test3".format(dec_path)
 
 
 def test_decrypt_path_non_encrypted_path(ftp_client):
