@@ -397,3 +397,21 @@ def test_decrypt_path_encrypted_path(ftp_client):
 def test_decrypt_path_non_encrypted_path(ftp_client):
     full_path = "/test1/test2/test3"
     assert ftp_client.decrypt_path(full_path) == full_path
+
+
+def test_pwd_non_encrypted_path(ftp_client):
+    with patch.object(FTP, "pwd", return_value="test_dir_1/test_dir_2") \
+            as mock_ftp_pwd:
+        pwd = ftp_client.pwd()
+        assert pwd == "test_dir_1/test_dir_2"
+        mock_ftp_pwd.assert_called_once()
+
+
+def test_pwd_encrypted_mix_path(ftp_client):
+    enc_dir = ftp_client.ftp_encrypt("test_dir_3")
+    path = "test_dir_1/test_dir_2/{}/test_dir_4".format(enc_dir)
+    with patch.object(FTP, "pwd", return_value=path) \
+            as mock_ftp_pwd:
+        pwd = ftp_client.pwd()
+        assert pwd == "test_dir_1/test_dir_2/test_dir_3/test_dir_4"
+        mock_ftp_pwd.assert_called_once()
