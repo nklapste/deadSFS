@@ -142,8 +142,7 @@ class EncryptedFTP(FTP):
 
     def pwd(self):
         """Return the decrypted current working directory"""
-        pwd = super().pwd()
-        return self.decrypt_path(pwd)
+        return self.decrypt_path(super().pwd())
 
     def cwd(self, dirname: str):
         # TODO: more elegant solution
