@@ -254,3 +254,10 @@ class DeadSFSShell(cmd2.Cmd):
     def do_rename(self, args):
         """Rename an encrypted file"""
         print(self.enc_ftp.rename(args.filename, args.new_filename))
+
+    @ftp_connected
+    @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
+    def do_validation_check(self):
+        """Validate that all encrypted file are not modified on the remote
+        FTP server"""
+        # TODO: implement a walk over all encrypted directories
