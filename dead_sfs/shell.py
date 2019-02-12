@@ -11,7 +11,8 @@ from logging import getLogger
 from typing import List
 
 import cmd2
-from cmd2 import with_argparser, argparse_completer, with_category
+from cmd2 import with_argparser, argparse_completer, with_category, \
+    with_argparser_and_unknown_args
 
 from dead_sfs.encrypted_ftp import EncryptedFTP, EncryptedFTPTLS
 
@@ -236,3 +237,20 @@ class DeadSFSShell(cmd2.Cmd):
         """Delete a file specified by its encrypted filename from the
         remote filesystem without"""
         print(self.enc_ftp.non_decrypted_ftp.delete(args.raw_filename))
+
+    # we have to re-build this manually as we cannot copy argparsers
+    # this is a direct limitation of python currently
+    rename_filename_parser = argparse_completer.ACArgumentParser()
+    rename_filename = rename_filename_parser.add_argument(
+        "filename", nargs="?", help="decrypted filename to change")
+    setattr(rename_filename, argparse_completer.ACTION_ARG_CHOICES,
+            '_instance_pwd_file_names')
+    rename_filename_parser.add_argument("new_filename",
+                                        help="new decrypted filename")
+
+    @ftp_connected
+    @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
+    @with_argparser_and_unknown_args(rename_filename_parser)
+    def do_rename(self, args):
+        """Rename an encrypted file"""
+        print(self.enc_ftp.rename(args.filename, args.new_filename))
