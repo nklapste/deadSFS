@@ -23,8 +23,8 @@ class EncryptedFTP(FTP):
     """Simple wrapper class of :class:`ftplib.FTP` the encrypts both a
     file's name and contents before sending it to the remote FTP server"""
 
-    def __init__(self, key: bytes, **kwargs):
-        self.secretbox = nacl.secret.SecretBox(key)
+    def __init__(self, enc_key: bytes, **kwargs):
+        self.secretbox = nacl.secret.SecretBox(enc_key)
         super().__init__(**kwargs)
         self.non_decrypted_ftp = super()
 

@@ -5,6 +5,7 @@
 
 import argparse
 import getpass
+import ssl
 from functools import wraps
 from io import BytesIO
 from logging import getLogger
@@ -64,18 +65,43 @@ class DeadSFSShell(cmd2.Cmd):
     setattr(raw_filename, argparse_completer.ACTION_ARG_CHOICES,
             '_instance_pwd_raw_file_names')
 
-    def __init__(self, key: bytes, tls: bool = False):
+    def __init__(self, enc_key: bytes, tls: bool = False,
+                 certfile=None, keyfile=None, cafile=None):
         """Initialize the deadSFS shell
 
-        :param key: The private key used for filename and file encryption
+        :param enc_key: The private key used for filename and file encryption
         :param tls: Enable using a FTP TLS connection
+
+        The below parameters are only relevant if ``tls`` is equal
+        to :obj:`True`:
+
+        :param certfile: Path to the clients *.pem self-certificate
+        :param keyfile: Path to the clients *.pem self-certificate key
+        :param cafile: Path the *.pem certificate authority to validate the
+            FTP server's connection
         """
         self.allow_cli_args = False
         super().__init__()
         if tls:
-            self.enc_ftp = EncryptedFTPTLS(key)
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+
+            # use TLS_V1 instead of SSLv2 or SSLv3
+            context.options |= ssl.OP_NO_SSLv2
+            context.options |= ssl.OP_NO_SSLv3
+
+            # use a custom self certificate,otherwise, use default certificates
+            if certfile and keyfile:
+                context.load_cert_chain(certfile=certfile, keyfile=keyfile)
+            else:
+                context.load_default_certs()
+
+            # enable validating the FTP servers connection with a ca
+            if cafile:
+                context.load_verify_locations(cafile=cafile)
+
+            self.enc_ftp = EncryptedFTPTLS(enc_key, context=context)
         else:
-            self.enc_ftp = EncryptedFTP(key)
+            self.enc_ftp = EncryptedFTP(enc_key)
 
     def do_quit(self, _):
         """Exit out of the deadSFS shell

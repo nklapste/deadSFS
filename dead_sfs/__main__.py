@@ -75,6 +75,16 @@ def get_parser() -> argparse.ArgumentParser:
                              "contents to be sent to the remote filesystem")
     parser.add_argument("--tls", action="store_true",
                         help="enable using a FTP TLS connection")
+    parser.add_argument("-c", "--certfile", default=None,
+                        help="Path to the deadSFS client *.pem "
+                             "self-certificate")
+    parser.add_argument("-k", "--keyfile", default=None,
+                        help="Path to the deadSFS client *.pem "
+                             "self-certificate key")
+    parser.add_argument("-ca" "--cafile", dest="cafile", default=None,
+                        help="Path to the *.pem certificate authority bundle "
+                             "to validate the remote FTP server's "
+                             "TLS connection")
     add_log_parser(parser)
 
     return parser
@@ -87,7 +97,7 @@ def main(argv=sys.argv[1:]) -> int:
     init_logging(args, "deadSFS_client.log")
     with open(args.key, "rb") as f:
         key = f.read()
-    DeadSFSShell(key, args.tls).cmdloop()
+    DeadSFSShell(key, args.tls, args.certfile, args.keyfile, args.cafile).cmdloop()
     return 0
 
 
