@@ -85,7 +85,9 @@ class DeadSFSShell(cmd2.Cmd):
         if tls:
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)
 
-            # use TLS_V1 instead of SSLv2 or SSLv3
+            # use TLS_V1_2 only instead of TLS_V1_1, TLS_V1, SSLv2, or SSLv3
+            context.options |= ssl.OP_NO_TLSv1
+            context.options |= ssl.OP_NO_TLSv1_1
             context.options |= ssl.OP_NO_SSLv2
             context.options |= ssl.OP_NO_SSLv3
 
