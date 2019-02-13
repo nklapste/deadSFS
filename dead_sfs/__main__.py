@@ -70,7 +70,7 @@ def get_parser() -> argparse.ArgumentParser:
         description="Start the deadSFS shell",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("key",
+    parser.add_argument("enc_key_file",
                         help="path to the private key file for encrypting "
                              "contents to be sent to the remote filesystem")
     parser.add_argument("--tls", action="store_true",
@@ -95,9 +95,15 @@ def main(argv=sys.argv[1:]) -> int:
     parser = get_parser()
     args = parser.parse_args(argv)
     init_logging(args, "deadSFS_client.log")
-    with open(args.key, "rb") as f:
-        key = f.read()
-    DeadSFSShell(key, args.tls, args.certfile, args.keyfile, args.cafile).cmdloop()
+    with open(args.enc_key_file, "rb") as f:
+        enc_key = f.read()
+    DeadSFSShell(
+        enc_key=enc_key,
+        tls=args.tls,
+        certfile=args.certfile,
+        keyfile=args.keyfile,
+        cafile=args.cafile
+    ).cmdloop()
     return 0
 
 
