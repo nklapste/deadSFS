@@ -126,9 +126,7 @@ class DeadSFSShell(cmd2.Cmd):
         print(self.enc_ftp.connect(args.host, args.port))
         print(self.enc_ftp.login(user=input("username: "),
                                  passwd=getpass.getpass()))
-        self.enc_ftp.set_pasv(False)
         if isinstance(self.enc_ftp, EncryptedFTPTLS):
-            # TODO: workaround needed for passive
             self.enc_ftp.prot_p()
 
     @ftp_connected
