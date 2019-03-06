@@ -218,7 +218,7 @@ class DeadSFSShell(cmd2.Cmd):
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     def do_wf(self, arg):
         """Encrypt and write a file into the remote filesystem"""
-        with open(arg.filename, "r") as f:
+        with open(arg, "r") as f:
             print(self.enc_ftp.storefile(arg, f.read()))
 
     @ftp_connected
