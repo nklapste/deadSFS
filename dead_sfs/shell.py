@@ -284,7 +284,9 @@ class DeadSFSShell(cmd2.Cmd):
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
-    def do_validation_check(self):
-        """Validate that all encrypted file are not modified on the remote
-        FTP server"""
-        # TODO: implement a walk over all encrypted directories
+    @with_argparser(raw_filename_parser)
+    def do_vald(self, args):
+        """Validate that all files within a specified directory are properly
+        encrypted and not wrongly modified on the remote FTP server"""
+        filename = DeadSFSShell._fix_filename_arg(args.raw_filename)
+        self.enc_ftp.validate_dir(filename)

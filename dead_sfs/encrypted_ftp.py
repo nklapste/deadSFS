@@ -44,9 +44,6 @@ class EncryptedFTP(FTP):
             return string.decode("utf-8")
         except (nacl.exceptions.CryptoError, IndexError,
                 binascii.Error, ValueError):
-            __log__.critical(
-                "detected unauthorized modification of remote filesystem "
-                "with FTP message: {}".format(safe_enc_string))
             raise
 
     def path_exists(self, path: str) -> bool:
@@ -82,6 +79,24 @@ class EncryptedFTP(FTP):
             else:
                 enc_dec_map[arg] = None
         return enc_dec_map
+
+    def validate_dir(self, *args):
+        files = []
+        for arg in args:
+            if self.path_exists(arg):
+                file = self.get_pwd_encrypted_path(arg)
+            else:
+                file = arg
+            files.append(file)
+
+        files = super().nlst(*files)
+        for file in files:
+            try:
+                    self.ftp_decrypt(os.path.split(file)[-1])
+            except (nacl.exceptions.CryptoError, IndexError,
+                    binascii.Error, ValueError):
+                __log__.critical("detected non-encrypted or modified "
+                                 "ftp file: {}".format(file))
 
     def shared_nlst(self, *args) -> Tuple[List[str], List[str]]:
         files = []
