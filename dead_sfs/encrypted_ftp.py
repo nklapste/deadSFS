@@ -81,6 +81,14 @@ class EncryptedFTP(FTP):
         return enc_dec_map
 
     def validate_dir(self, *args):
+        """Validate that all paths within the specified director(y|ies)
+        are properly encrypted via deadSFS. If not raise a warning message
+        noting the invalid paths.
+
+        .. note::
+            The director(y|ies) to be validated should be specified with their
+            encrypted filename.
+        """
         files = []
         for arg in args:
             if self.path_exists(arg):
