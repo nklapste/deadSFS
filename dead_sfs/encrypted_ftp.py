@@ -221,4 +221,3 @@ class EncryptedFTP(FTP):
 class EncryptedFTPTLS(EncryptedFTP, FTP_TLS):
     """"Subclass of :class:`EncryptedFTP` that supports
     FTP TLS connections"""
-    # TODO: need to establish a custom tls/ssl context to ensure valid certs
