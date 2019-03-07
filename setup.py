@@ -84,6 +84,14 @@ setup(
         "pytest-cov>=2.6.1,<3.0.0",
         "pylint>=2.2.2,<3.0.0",
     ],
+    extras_require={
+        "docs": [
+            "sphinx>=1.7.5,<2.0.0",
+            "sphinx_rtd_theme>=0.3.1,<1.0.0",
+            "sphinx-autodoc-typehints>=1.3.0,<2.0.0",
+            "sphinx-argparse>=0.2.2,<1.0.0",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "deadSFS-shell = dead_sfs.__main__:main",

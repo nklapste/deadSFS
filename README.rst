@@ -14,11 +14,6 @@ Requirements
 
 * Python 3.6+
 
-Overview
-========
-
-TODO: fill
-
 Installation
 ============
 
@@ -30,8 +25,8 @@ deadSFS can be installed from source by running:
 
 Within the same directory as deadSFS's ``setup.py`` file.
 
-Usage
-=====
+Quick start
+===========
 
 deadSFS-keygen
 --------------
