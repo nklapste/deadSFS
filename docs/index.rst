@@ -14,7 +14,6 @@ This code is open source, and is `available on GitHub`_.
    Overview<readme>
    Command Line Usage<commands>
 
-
 Indices and tables
 ==================
 
