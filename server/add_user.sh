@@ -19,4 +19,4 @@ mkdir ${NEW_USER_HOME}
 chown ${NEW_USER}:${NEW_USER_GROUP} ${NEW_USER_HOME}
 chmod 750 ${NEW_USER_HOME}
 
-echo "Added new user ${NEW_USER} to the ftp server"
+echo "Added new user: ${NEW_USER} with group: ${NEW_USER_GROUP} to the ftp server"
