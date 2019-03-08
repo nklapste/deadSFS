@@ -444,6 +444,7 @@ def test_validate_dir_success(ftp_client):
                    return_value=MockBytesIO()):
             with patch.object(FTP, "nlst", return_value=[enc_file]) as mock_ftp_nlst:
                 assert ftp_client.validate_dir(".") == []
+                mock_ftp_nlst.assert_called()
                 mock_retrbinary.assert_called_once()
 
 
