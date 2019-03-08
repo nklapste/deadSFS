@@ -71,10 +71,10 @@ def get_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("enc_key_file",
-                        help="path to the private key file for encrypting "
+                        help="Path to the private key file for encrypting "
                              "contents to be sent to the remote filesystem")
     parser.add_argument("--tls", action="store_true",
-                        help="enable using a FTP TLS connection")
+                        help="Enable using a FTP TLS connection")
     parser.add_argument("-c", "--certfile", default=None,
                         help="Path to the deadSFS client *.pem "
                              "self-certificate")

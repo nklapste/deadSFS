@@ -417,3 +417,38 @@ def test_pwd_encrypted_mix_path(ftp_client):
         pwd = ftp_client.pwd()
         assert pwd == "test_dir_1/test_dir_2/test_dir_3/test_dir_4"
         mock_ftp_pwd.assert_called_once()
+
+
+def test_validate_dir_success(ftp_client):
+    retrbinary_return_value = ftp_client.ftp_encrypt("test_content")
+
+    enc_file = ftp_client.ftp_encrypt("test_file")
+
+    class MockBytesIO(io.BytesIO):
+        """mocking BytesIO can be a pain"""
+        def __init__(self):
+            super().__init__()
+
+        def write(self, b):
+            pass
+
+        def seek(self, pos, **kwargs):
+            pass
+
+        def read(self, **kwargs):
+            return retrbinary_return_value.encode("utf-8")
+
+    with patch.object(FTP, "retrbinary", return_value=retrbinary_return_value)\
+            as mock_retrbinary:
+        with patch("dead_sfs.encrypted_ftp.BytesIO",
+                   return_value=MockBytesIO()):
+            with patch.object(FTP, "nlst", return_value=[enc_file]) as mock_ftp_nlst:
+                assert ftp_client.validate_dir(".") == []
+                mock_ftp_nlst.assert_called()
+                mock_retrbinary.assert_called_once()
+
+
+def test_validate_dir_failure(ftp_client):
+    with patch.object(FTP, "nlst", return_value=["test_file"]) as mock_ftp_nlst:
+        assert ftp_client.validate_dir(".") == ["test_file"]
+        mock_ftp_nlst.assert_called()

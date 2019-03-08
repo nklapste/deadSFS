@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""command shell for deadSFS"""
+"""Command shell for deadSFS"""
 
 import argparse
 import getpass
@@ -124,11 +124,16 @@ class DeadSFSShell(cmd2.Cmd):
     def do_connect(self, args):
         """Connect and login into the remote FTP server"""
         print(self.enc_ftp.connect(args.host, args.port))
-        print(self.enc_ftp.login(user=input("username: "),
+        username = input("username: ")
+        print(self.enc_ftp.login(user=username,
                                  passwd=getpass.getpass()))
-        self.enc_ftp.set_pasv(True)
         if isinstance(self.enc_ftp, EncryptedFTPTLS):
             self.enc_ftp.prot_p()
+
+        # silently change directory to the users home
+        self.enc_ftp.non_decrypted_ftp.cwd(username)
+        # validate the integrity of the users home
+        self.enc_ftp.validate_dir(".")
 
     @ftp_connected
     @with_category(CAT_CONNECTION)
@@ -218,7 +223,7 @@ class DeadSFSShell(cmd2.Cmd):
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
     def do_wf(self, arg):
         """Encrypt and write a file into the remote filesystem"""
-        with open(arg.filename, "r") as f:
+        with open(arg, "r") as f:
             print(self.enc_ftp.storefile(arg, f.read()))
 
     @ftp_connected
@@ -285,7 +290,10 @@ class DeadSFSShell(cmd2.Cmd):
 
     @ftp_connected
     @with_category(CAT_ENCRYPTED_FTP_COMMANDS)
-    def do_validation_check(self):
-        """Validate that all encrypted file are not modified on the remote
-        FTP server"""
-        # TODO: implement a walk over all encrypted directories
+    @with_argparser(raw_filename_parser)
+    def do_vald(self, args):
+        """Validate that all files (including files within nested directories)
+        within a specified directory are properly encrypted and not wrongly
+        modified on the remote FTP server"""
+        filename = DeadSFSShell._fix_filename_arg(args.raw_filename)
+        self.enc_ftp.validate_dir(filename)

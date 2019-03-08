@@ -19,7 +19,7 @@ def get_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument("output",
-                        help="path to the output the private key file "
+                        help="Path to the output the private key file "
                              "for usage in the deadSFS shell")
 
     return parser
