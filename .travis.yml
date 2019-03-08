@@ -36,7 +36,7 @@ jobs:
       script:
         - python setup.py bdist_wheel
     - name: "sphinx docs"
-        install:
-          - pip install .["docs"]
-        script:
-          - sphinx-build docs/ build/
+      install:
+        - pip install .["docs"]
+      script:
+        - sphinx-build docs/ build/
