@@ -101,13 +101,13 @@ class EncryptedFTP(FTP):
         files = super().nlst(*files)
         for file in files:
             try:
-                    dec_path = self.ftp_decrypt(os.path.split(file)[-1])
-                    # if it is a file and not a dir attempt to download and
-                    # decrypt its contents
-                    try:
-                        self.readfile(dec_path)
-                    except ftplib.error_perm:  # path was not a file!
-                        self.validate_dir(dec_path)
+                dec_path = self.ftp_decrypt(os.path.split(file)[-1])
+                # if it is a file and not a dir attempt to download and
+                # decrypt its contents
+                try:
+                    self.readfile(dec_path)
+                except ftplib.error_perm:  # path was not a file!
+                    self.validate_dir(dec_path)
             except (nacl.exceptions.CryptoError, IndexError,
                     binascii.Error, ValueError):
                 __log__.critical("detected non-encrypted or modified "
