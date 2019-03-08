@@ -306,5 +306,5 @@ class EncryptedFTP(FTP):
 
 
 class EncryptedFTPTLS(EncryptedFTP, FTP_TLS):
-    """"Subclass of :class:`EncryptedFTP` that supports
+    """Subclass of :class:`EncryptedFTP` that supports
     FTP TLS connections"""
