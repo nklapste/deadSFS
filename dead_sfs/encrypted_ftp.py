@@ -102,19 +102,17 @@ class EncryptedFTP(FTP):
             The director(y|ies) to be validated should be specified with their
             encrypted filename.
         """
-        files = []
-        for arg in args:
-            if self.path_exists(arg):
-                file = self.get_pwd_encrypted_path(arg)
-            else:
-                file = arg
-            files.append(file)
+        nlst_dirs = []
+        for nlst_dir in args:
+            if self.path_exists(nlst_dir):
+                nlst_dir = self.get_pwd_encrypted_path(nlst_dir)
+            nlst_dirs.append(nlst_dir)
 
-        files = super().nlst(*files)
+        raw_paths = super().nlst(*nlst_dirs)
         invalid_paths = []
-        for file in files:
+        for raw_path in raw_paths:
             try:
-                dec_path = self.ftp_decrypt(os.path.split(file)[-1])
+                dec_path = self.ftp_decrypt(os.path.split(raw_path)[-1])
                 # if it is a file and not a dir attempt to download and
                 # decrypt its contents
                 try:
@@ -124,8 +122,8 @@ class EncryptedFTP(FTP):
             except (nacl.exceptions.CryptoError, IndexError,
                     binascii.Error, ValueError):
                 __log__.critical("detected non-encrypted or modified "
-                                 "file / directory: {}".format(file))
-                invalid_paths.append(file)
+                                 "file / directory: {}".format(raw_path))
+                invalid_paths.append(raw_path)
         return invalid_paths
 
     def shared_nlst(self, *args) -> Tuple[List[str], List[str]]:
@@ -138,24 +136,22 @@ class EncryptedFTP(FTP):
             paths that failed to be decrypted of files contained within
             the specified director(y|ies)
         """
-        files = []
-        for arg in args:
-            if self.path_exists(arg):
-                file = self.get_pwd_encrypted_path(arg)
-            else:
-                file = arg
-            files.append(file)
+        nlst_dirs = []
+        for nlst_dir in args:
+            if self.path_exists(nlst_dir):
+                nlst_dir = self.get_pwd_encrypted_path(nlst_dir)
+            nlst_dirs.append(nlst_dir)
 
-        enc_dirs = super().nlst(*files)
-        decrypted_files = []
-        failed_files = []
-        for dir in enc_dirs:
+        raw_paths = super().nlst(*nlst_dirs)
+        decrypted_paths = []
+        failed_paths = []
+        for raw_path in raw_paths:
             try:
-                decrypted_files.append(self.ftp_decrypt(os.path.split(dir)[-1]))
+                decrypted_paths.append(self.ftp_decrypt(os.path.split(raw_path)[-1]))
             except (nacl.exceptions.CryptoError, IndexError,
                     binascii.Error, ValueError):
-                failed_files.append(os.path.split(dir)[-1])
-        return decrypted_files, failed_files
+                failed_paths.append(os.path.split(raw_path)[-1])
+        return decrypted_paths, failed_paths
 
     def nlst(self, *args) -> List[str]:
         """List the decrypted paths of encrypted files within the
