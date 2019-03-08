@@ -90,12 +90,13 @@ class EncryptedFTP(FTP):
                 enc_dec_map[arg] = None
         return enc_dec_map
 
-    def validate_dir(self, *args):
+    def validate_dir(self, *args) -> List[str]:
         """Validate that all paths within the specified director(y|ies)
         are properly encrypted via deadSFS. If not raise a warning message
         noting the invalid paths.
 
         :param args: list of directories to validate contained contents
+        :return: list of paths that failed validation
 
         .. note::
             The director(y|ies) to be validated should be specified with their
@@ -110,6 +111,7 @@ class EncryptedFTP(FTP):
             files.append(file)
 
         files = super().nlst(*files)
+        invalid_paths = []
         for file in files:
             try:
                 dec_path = self.ftp_decrypt(os.path.split(file)[-1])
@@ -122,7 +124,9 @@ class EncryptedFTP(FTP):
             except (nacl.exceptions.CryptoError, IndexError,
                     binascii.Error, ValueError):
                 __log__.critical("detected non-encrypted or modified "
-                                 "ftp file: {}".format(file))
+                                 "file / directory: {}".format(file))
+                invalid_paths.append(file)
+        return invalid_paths
 
     def shared_nlst(self, *args) -> Tuple[List[str], List[str]]:
         """List both the decrypted paths and paths that failed to be
