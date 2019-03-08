@@ -14,5 +14,6 @@ usermod -d ${FTP_HOME} ${NEW_USER}
 NEW_USER_HOME="${FTP_HOME}/${NEW_USER}"
 mkdir ${NEW_USER_HOME}
 chown ${NEW_USER}:${NEW_USER} ${NEW_USER_HOME}
+chmod 750 ${NEW_USER_HOME}
 
 echo "Added new user ${NEW_USER} to the ftp server"
