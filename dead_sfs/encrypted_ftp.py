@@ -101,6 +101,9 @@ class EncryptedFTP(FTP):
         .. note::
             The director(y|ies) to be validated should be specified with their
             encrypted filename.
+
+        .. note::
+            This recursively travels and validates nested directories.
         """
         nlst_dirs = []
         for nlst_dir in args:
