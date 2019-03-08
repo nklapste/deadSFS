@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""command shell for deadSFS"""
+"""Command shell for deadSFS"""
 
 import argparse
 import getpass
