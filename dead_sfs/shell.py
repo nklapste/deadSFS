@@ -124,10 +124,16 @@ class DeadSFSShell(cmd2.Cmd):
     def do_connect(self, args):
         """Connect and login into the remote FTP server"""
         print(self.enc_ftp.connect(args.host, args.port))
-        print(self.enc_ftp.login(user=input("username: "),
+        username = input("username: ")
+        print(self.enc_ftp.login(user=username,
                                  passwd=getpass.getpass()))
         if isinstance(self.enc_ftp, EncryptedFTPTLS):
             self.enc_ftp.prot_p()
+
+        # silently change directory to the users home
+        self.enc_ftp.non_decrypted_ftp.cwd(username)
+        # validate the integrity of the users home
+        self.enc_ftp.validate_dir(".")
 
     @ftp_connected
     @with_category(CAT_CONNECTION)
