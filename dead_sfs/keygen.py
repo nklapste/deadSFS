@@ -25,12 +25,16 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def write_key(output_file):
+    with open(output_file, "wb") as f:
+        f.write(nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE))
+
+
 def main(argv=sys.argv[1:]) -> int:
     """main entry point for deadSFS-keygen"""
     parser = get_parser()
     args = parser.parse_args(argv)
-    with open(args.output, "wb") as f:
-        f.write(nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE))
+    write_key(args.output)
     return 0
 
 
